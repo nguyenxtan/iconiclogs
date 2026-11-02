@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "iconiclogs-mail",
+  "main": "src/server/worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "vars": { "ENVIRONMENT": "production", "MAIL_ENABLED": "false", "MAIL_DOMAIN": "iconiclogs.com" },
+  "durable_objects": {
+    "bindings": [
+      { "name": "SESSIONS", "class_name": "SessionVault" },
+      { "name": "MAILBOXES", "class_name": "MailboxCoordinator" },
+    ],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionVault", "MailboxCoordinator"] }],
+  "observability": { "enabled": false },
+}

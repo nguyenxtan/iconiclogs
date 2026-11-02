@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ContactCTA from '../components/ContactCTA.astro';
+import Icon from '../components/Icon.astro';
+const principles = [
+  {
+    title: 'Bắt đầu bằng thông tin cụ thể',
+    description:
+      'Loại hàng, tuyến vận chuyển, thời gian và chứng từ là nền tảng để cùng xây dựng phương án. Mỗi yêu cầu được đặt trong bối cảnh vận hành thực tế của doanh nghiệp.',
+  },
+  {
+    title: 'Thống nhất trước khi triển khai',
+    description:
+      'Phạm vi dịch vụ, chi phí, lịch trình và trách nhiệm phối hợp được trao đổi rõ ràng. Những thông tin còn thiếu hoặc cần xác nhận được cùng làm rõ trước bước tiếp theo.',
+  },
+  {
+    title: 'Theo sát quá trình phối hợp',
+    description:
+      'Kết nối các đầu mối liên quan, cập nhật thông tin và trao đổi khi có thay đổi. Trách nhiệm được thể hiện qua cách làm ở từng chặng của hành trình.',
+  },
+];
+---
+
+<BaseLayout
+  title="Về ICONIC | ICONIC Logistics"
+  description="Tìm hiểu ICONIC Logistics: đồng hành từ sự thấu hiểu, phối hợp rõ ràng và kết nối nhu cầu vận chuyển, xuất nhập khẩu, kho bãi, phân phối của doanh nghiệp."
+>
+  <Header />
+  <main id="noi-dung" tabindex="-1">
+    <PageIntro
+      eyebrow="VỀ ICONIC LOGISTICS"
+      title="Đồng hành từ"
+      accent="sự thấu hiểu."
+      description="ICONIC Logistics kết nối nhu cầu vận chuyển, thủ tục xuất nhập khẩu, kho bãi và phân phối của doanh nghiệp. Chúng tôi tin rằng một hành trình được phối hợp tốt bắt đầu từ việc hiểu đúng yêu cầu."
+      breadcrumbs={[{ label: 'Về ICONIC' }]}
+    />
+    <figure class="container page-wide-image">
+      <img
+        src="/visuals/iconic-home-air.webp"
+        alt="Minh họa bối cảnh giao nhận hàng hóa bằng đường hàng không"
+        width="1256"
+        height="576"
+        fetchpriority="high"
+      /><figcaption>
+        <span>ICONIC LOGISTICS · VIỆT NAM</span><span>Đồng hành trên từng chặng đường.</span>
+      </figcaption>
+    </figure>
+    <section class="container editorial-split page-section" aria-labelledby="story-title">
+      <div>
+        <p class="eyebrow">CÁCH CHÚNG TÔI ĐỒNG HÀNH</p><h2 id="story-title">
+          Hiểu từng yêu cầu.<br /><em>Rõ từng trách nhiệm.</em>
+        </h2>
+      </div><div class="prose">
+        <p>
+          Logistics là sự kết nối của nhiều phương thức vận chuyển, nhiều hồ sơ và nhiều đầu mối
+          phối hợp. Một quyết định ở chặng này có thể ảnh hưởng đến kế hoạch của cả hành trình.
+        </p><p>
+          Vì vậy, ICONIC bắt đầu bằng việc lắng nghe: hàng hóa cần đi đâu, khi nào, với điều kiện
+          nào và doanh nghiệp cần phối hợp những gì. Từ đó, chúng tôi cùng bạn xác định phạm vi,
+          trao đổi phương án và thống nhất các bước thực hiện.
+        </p><p>
+          Từ đường biển, hàng không đến đường bộ; từ hồ sơ xuất nhập khẩu đến lưu kho và phân phối,
+          mỗi dịch vụ được đặt trong tổng thể nhu cầu thực tế của doanh nghiệp.
+        </p><a class="text-link" href="/services"
+          >Tìm hiểu dịch vụ <Icon name="arrow" size={20} /></a
+        >
+      </div>
+    </section>
+    <section class="about-purpose" aria-label="Tầm nhìn và sứ mệnh">
+      <div class="container purpose-grid">
+        <article>
+          <p class="eyebrow">TẦM NHÌN</p><h2>
+            Logistics rõ ràng.<br /><em>Phối hợp có hệ thống.</em>
+          </h2><p>
+            Hướng đến cách phối hợp logistics ngày càng minh bạch, phù hợp với bối cảnh vận hành và
+            nhu cầu của doanh nghiệp.
+          </p>
+        </article><article>
+          <p class="eyebrow">SỨ MỆNH</p><h2>
+            Kết nối thông tin.<br /><em>Kết nối hành trình.</em>
+          </h2><p>
+            Kết nối yêu cầu, thông tin và các đầu mối để mỗi cuộc trao đổi đi đúng trọng tâm, mỗi
+            bước tiếp theo có trách nhiệm phối hợp rõ ràng.
+          </p>
+        </article>
+      </div>
+    </section>
+    <section class="container page-section editorial-split" aria-labelledby="principles-title">
+      <div>
+        <p class="eyebrow">TRIẾT LÝ LÀM VIỆC</p><h2 id="principles-title">
+          Trách nhiệm thể hiện<br /><em>qua cách làm.</em>
+        </h2><a class="text-link" href="/#cach-phoi-hop"
+          >Xem các bước phối hợp <Icon name="arrow" size={20} /></a
+        >
+      </div><ol class="editorial-list">
+        {
+          principles.map((item, index) => (
+            <li>
+              <>
+                <span>0{index + 1}</span>
+                <div>
+                  <>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                  </>
+                </div>
+              </>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+    <div class="brochure-band container">
+      <div><p class="eyebrow">TÌM HIỂU THÊM VỀ ICONIC</p><h2>Một góc nhìn đầy đủ hơn.</h2></div><a
+        class="text-link"
+        href="/brochure">Khám phá brochure Việt / Anh <Icon name="northeast" size={20} /></a
+      >
+    </div>
+    <ContactCTA />
+  </main>
+  <Footer />
+</BaseLayout>

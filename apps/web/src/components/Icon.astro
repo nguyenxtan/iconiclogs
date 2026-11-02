@@ -1,0 +1,45 @@
+---
+interface Props {
+  name: string;
+  size?: number;
+  class?: string;
+}
+const { name, size = 24, class: className } = Astro.props;
+const paths: Record<string, string[]> = {
+  arrow: ['M4 12h16', 'm14 6 6 6-6 6'],
+  northeast: ['M6 18 18 6', 'M6 6h12v12'],
+  ship: [
+    'M4 16 2 10l10-4 10 4-2 6',
+    'M7 8V3h10v5',
+    'M12 6v10',
+    'M2 20c2 0 3-2 5-2s3 2 5 2 3-2 5-2 3 2 5 2',
+  ],
+  plane: ['m22 2-7 20-4-9-9-4 20-7Z', 'M11 13 22 2'],
+  truck: [
+    'M1 4h14v12H1z',
+    'M15 8h4l4 5v3h-8',
+    'M7 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
+    'M21 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z',
+  ],
+  document: ['M14 2H5v20h14V7l-5-5Z', 'M14 2v6h5', 'M8 12h8', 'M8 16h6'],
+  warehouse: ['M2 9 12 3l10 6v12H2V9Z', 'M6 21V11h12v10', 'M6 15h12', 'M6 18h12'],
+  mail: ['M3 5h18v14H3V5Z', 'm3 5 9 7 9-7'],
+  phone: ['M7 3H3c0 10 8 18 18 18v-4l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z'],
+  pin: ['M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z', 'M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z'],
+};
+---
+
+<svg
+  class={className}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.35"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+>
+  {(paths[name] ?? paths.arrow).map((d) => <path d={d} />)}
+</svg>

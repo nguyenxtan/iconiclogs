@@ -1,0 +1,42 @@
+---
+import { company } from '../content/company';
+import Icon from './Icon.astro';
+---
+
+<footer class="site-footer">
+  <div class="container footer-top">
+    <div class="footer-identity">
+      <a class="brand-mark" href="/" aria-label="ICONIC Logistics — về đầu trang">
+        <img
+          src="/brand/iconic-logo.png"
+          alt="ICONIC Logistics Việt Nam"
+          width="500"
+          height="500"
+          loading="lazy"
+        />
+      </a>
+      <p>Kết nối hành trình.<br />Vững bước giao thương.</p>
+    </div>
+    <div class="footer-column">
+      <h2>Khám phá</h2>
+      <a href="/about">Về ICONIC</a>
+      <a href="/services">Dịch vụ logistics</a>
+      <a href="/#cach-phoi-hop">Cách phối hợp</a>
+      <a href="/brochure">Brochure</a>
+      <a href="/contact">Liên hệ</a>
+    </div>
+    <div class="footer-column footer-contact">
+      <h2>Kết nối với chúng tôi</h2>
+      <a href={`mailto:${company.email}`}>{company.email}</a>
+      <a href={`tel:+84${company.phone.slice(1)}`}>{company.phoneDisplay}</a>
+      <p>{company.address}</p>
+    </div>
+    <a class="footer-mail" href={company.mailUrl}
+      ><span>Dành cho nhân viên</span>ICONIC Mail<Icon name="northeast" size={20} /></a
+    >
+  </div>
+  <div class="container footer-bottom">
+    <p>© {new Date().getFullYear()} ICONIC Logistics. Bảo lưu mọi quyền.</p>
+    <a href="#dau-trang">Về đầu trang <span aria-hidden="true">↑</span></a>
+  </div>
+</footer>

@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ContactCTA from '../../components/ContactCTA.astro';
+import CargoPreparation from '../../components/CargoPreparation.astro';
+import Icon from '../../components/Icon.astro';
+import { services } from '../../content/company';
+import { serviceDetails } from '../../content/service-details';
+---
+
+<BaseLayout
+  title="Dịch vụ logistics | Đường biển, hàng không, đường bộ | ICONIC"
+  description="Khám phá dịch vụ ICONIC Logistics: vận tải đường biển, hàng không, đường bộ, thủ tục hải quan, kho bãi và phân phối. Tìm hiểu phạm vi phối hợp cho từng lô hàng."
+>
+  <Header />
+  <main id="noi-dung" tabindex="-1">
+    <PageIntro
+      eyebrow="DỊCH VỤ LOGISTICS"
+      title="Kết nối từng nhu cầu."
+      accent="Liền mạch mỗi hành trình."
+      description="Vận chuyển, thủ tục xuất nhập khẩu và phân phối — cùng ICONIC tìm phương án phù hợp với yêu cầu của lô hàng. Chọn một dịch vụ hoặc phối hợp nhiều chặng theo nhu cầu thực tế."
+      breadcrumbs={[{ label: 'Dịch vụ' }]}
+    />
+    <nav class="container service-jump" aria-label="Chọn nhóm dịch vụ">
+      {
+        services.map((service) => (
+          <a href={`#${service.slug}`}>
+            <span>{service.number}</span>
+            {service.title}
+            <span aria-hidden="true">↓</span>
+          </a>
+        ))
+      }
+    </nav>
+    <div class="service-overview-band">
+      <div class="container service-overview">
+        {
+          services.map((service) => (
+            <section
+              class="service-overview-row"
+              id={service.slug}
+              aria-labelledby={`${service.slug}-title`}
+            >
+              <>
+                <div class="service-overview-title">
+                  <>
+                    <span class="service-overview-number">{service.number}</span>
+                    <Icon name={service.icon} size={34} />
+                    <p class="eyebrow">{service.english}</p>
+                    <h2 id={`${service.slug}-title`}>{service.title}</h2>
+                  </>
+                </div>
+                <div class="service-overview-copy">
+                  <>
+                    <p>{service.description}</p>
+                    <ul>
+                      {serviceDetails[service.slug].scope.map((item) => (
+                        <li>{item.title}</li>
+                      ))}
+                    </ul>
+                    <a class="text-link" href={`/services/${service.slug}`}>
+                      Phạm vi dịch vụ & thông tin cần chuẩn bị <Icon name="northeast" size={20} />
+                    </a>
+                  </>
+                </div>
+              </>
+            </section>
+          ))
+        }
+      </div>
+    </div>
+    <div class="container page-section"><CargoPreparation /></div>
+    <div class="brochure-band container">
+      <div><p class="eyebrow">TÀI LIỆU GIỚI THIỆU</p><h2>Dịch vụ trong một góc nhìn.</h2></div><a
+        class="text-link"
+        href="/brochure">Xem brochure ICONIC <Icon name="northeast" size={20} /></a
+      >
+    </div>
+    <ContactCTA />
+  </main>
+  <Footer />
+</BaseLayout>

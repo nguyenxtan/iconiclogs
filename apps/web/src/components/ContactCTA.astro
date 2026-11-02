@@ -1,0 +1,25 @@
+---
+import Icon from './Icon.astro';
+import { company } from '../content/company';
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = 'Cùng bắt đầu hành trình tiếp theo.',
+  description = 'Chia sẻ loại hàng, tuyến vận chuyển và thời gian dự kiến. ICONIC cùng bạn làm rõ phương án và các bước phối hợp.',
+} = Astro.props;
+---
+
+<section class="page-contact-cta">
+  <div class="container page-contact-inner">
+    <div>
+      <p class="eyebrow">MỘT CUỘC TRAO ĐỔI, MỘT KẾT NỐI MỚI</p><h2>{title}</h2><p>{description}</p>
+    </div>
+    <div class="page-contact-actions">
+      <a class="button button-light" href={`mailto:${company.email}`}
+        >Gửi yêu cầu qua email <Icon name="northeast" size={20} /></a
+      ><a href="/contact">Thông tin liên hệ <Icon name="arrow" size={18} /></a>
+    </div>
+  </div>
+</section>

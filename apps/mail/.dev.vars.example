@@ -1,0 +1,10 @@
+# Copy to .dev.vars for LOCAL use. Never commit actual secrets.
+ENVIRONMENT=development
+MAIL_ENABLED=false
+MAIL_DOMAIN=iconiclogs.com
+MAIL_HOST=
+MAIL_ALLOWED_USERS=
+# Generate privately: openssl rand -base64 32
+SESSION_KEY=
+# Set only after checking provider behavior: append or provider
+SENT_MODE=

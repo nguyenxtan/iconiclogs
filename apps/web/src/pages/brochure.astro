@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PageIntro from '../components/PageIntro.astro';
+import ContactCTA from '../components/ContactCTA.astro';
+import Icon from '../components/Icon.astro';
+const brochures = [
+  {
+    language: 'vi',
+    number: '01',
+    title: 'Brochure tiếng Việt',
+    description: 'Tài liệu giới thiệu ICONIC Logistics bằng tiếng Việt.',
+    label: 'TIẾNG VIỆT',
+    file: '/brochures/iconic-logistics-brochure-vi.pdf',
+    preview: '/brochures/iconic-logistics-brochure-vi-preview.webp',
+  },
+  {
+    language: 'en',
+    number: '02',
+    title: 'English brochure',
+    description: 'Discover ICONIC Logistics in our English company brochure.',
+    label: 'ENGLISH',
+    file: '/brochures/iconic-logistics-brochure-en.pdf',
+    preview: '/brochures/iconic-logistics-brochure-en-preview.webp',
+  },
+];
+---
+
+<BaseLayout
+  title="Brochure Việt & English | ICONIC Logistics"
+  description="Xem và tải brochure giới thiệu ICONIC Logistics bằng tiếng Việt hoặc tiếng Anh. Tài liệu PDF giới thiệu doanh nghiệp và các dịch vụ logistics."
+>
+  <Header />
+  <main id="noi-dung" tabindex="-1">
+    <PageIntro
+      eyebrow="TÀI LIỆU DOANH NGHIỆP"
+      title="Khám phá"
+      accent="ICONIC Logistics."
+      description="Tìm hiểu doanh nghiệp và các dịch vụ logistics qua tài liệu giới thiệu của ICONIC. Hai ngôn ngữ, cùng một kết nối — thuận tiện để xem, lưu và chia sẻ."
+      breadcrumbs={[{ label: 'Brochure' }]}
+    />
+    <section class="container brochure-library" aria-label="Chọn ngôn ngữ brochure">
+      {
+        brochures.map((brochure) => (
+          <article class="brochure-entry">
+            <>
+              <div class="brochure-entry-top">
+                <>
+                  <span>
+                    {brochure.number} / {brochure.label}
+                  </span>
+                  <span>PDF</span>
+                </>
+              </div>
+              <a class="brochure-preview" href={brochure.file} aria-label={`Xem ${brochure.title}`}>
+                <img
+                  src={brochure.preview}
+                  alt={`Hình xem trước ${brochure.title} của ICONIC Logistics`}
+                  width="2518"
+                  height="1090"
+                  fetchpriority={brochure.language === 'vi' ? 'high' : 'auto'}
+                />
+              </a>
+              <div class="brochure-entry-content">
+                <>
+                  <h2 lang={brochure.language}>{brochure.title}</h2>
+                  <p lang={brochure.language}>{brochure.description}</p>
+                  <div class="brochure-actions">
+                    <>
+                      <a class="text-link" href={brochure.file}>
+                        Xem bản PDF <Icon name="northeast" size={20} />
+                      </a>
+                      <a href={brochure.file} download>
+                        Tải xuống <span aria-hidden="true">↓</span>
+                      </a>
+                    </>
+                  </div>
+                </>
+              </div>
+            </>
+          </article>
+        ))
+      }
+    </section>
+    <div class="container brochure-reading-note">
+      <Icon name="document" size={21} /><p>
+        Đây là tài liệu giới thiệu doanh nghiệp hiện có. Thông tin liên hệ và các dịch vụ hiện tại
+        được cập nhật trên website. Để xác nhận phương án, lịch vận chuyển và phạm vi phối hợp cho
+        một lô hàng cụ thể, vui lòng <a href="/contact">liên hệ ICONIC</a>.
+      </p>
+    </div>
+    <ContactCTA />
+  </main>
+  <Footer />
+</BaseLayout>

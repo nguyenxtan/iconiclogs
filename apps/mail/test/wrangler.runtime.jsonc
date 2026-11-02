@@ -1,0 +1,9 @@
+{
+  "name": "iconiclogs-local-runtime-test",
+  "main": "runtime-worker.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "durable_objects": { "bindings": [{ "name": "SESSIONS", "class_name": "TestVault" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestVault"] }],
+}

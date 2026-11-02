@@ -1,0 +1,53 @@
+---
+import '@iconic/brand/tokens.css';
+import '../styles/global.css';
+interface Props {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+}
+const {
+  title = 'ICONIC Logistics | Kết nối hành trình. Vững bước giao thương.',
+  description = 'ICONIC Logistics đồng hành cùng doanh nghiệp với dịch vụ vận tải đường biển, hàng không, đường bộ, thủ tục hải quan và phối hợp kho bãi, phân phối.',
+  noindex = false,
+} = Astro.props;
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+const canonical = new URL(pathname, Astro.site);
+const image = new URL('/visuals/iconic-port-hero-v2.webp', Astro.site);
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#faf7f1" />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:site_name" content="ICONIC Logistics" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1915" />
+    <meta property="og:image:height" content="821" />
+    <meta
+      property="og:image:alt"
+      content="Tàu container trên hành trình qua cảng biển lúc hoàng hôn"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+    <title>{title}</title>
+  </head>
+  <body id="dau-trang">
+    <a class="skip-link" href="#noi-dung">Chuyển đến nội dung chính</a>
+    <slot />
+  </body>
+</html>
