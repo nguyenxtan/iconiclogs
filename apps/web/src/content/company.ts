@@ -71,7 +71,7 @@ export const process = [
     description: 'Trao đổi lộ trình, chi phí và trách nhiệm phối hợp trước khi triển khai.',
   },
   {
-    title: 'Kết nối thực hiện',
+    title: 'Triển khai giao nhận',
     description: 'Phối hợp các bên liên quan, theo sát chứng từ và cập nhật tiến độ của lô hàng.',
   },
   {

@@ -12,8 +12,9 @@ import type { Credentials } from '../core/session';
 import type { ProviderConfig } from '../config';
 import { MailError } from '../core/errors';
 import { MAX_MIME, messageKey } from '../core/validation';
-import { ensureMimeSize, messageBody, parseMessage } from './mime';
+import { composeMessage, ensureMimeSize, messageBody, parseMessage } from './mime';
 import { deliverMessage } from './smtp';
+import { attachmentParts, type AttachmentPart } from './parts';
 
 const address = (value?: MessageAddressObject) => ({
   name: value?.name || '',
@@ -145,7 +146,7 @@ export class ViettelProvider implements MailProvider {
     folder: Folder,
     id: string,
     markSeen: boolean,
-  ): Promise<{ parsed: ParsedMail; item: MessageSummary }> {
+  ): Promise<{ parsed: ParsedMail; item: MessageSummary; parts: AttachmentPart[] }> {
     const key = messageKey(id);
     return this.connection(async (client) => {
       const lock = await client.getMailboxLock(await this.folderPath(client, folder), {
@@ -160,7 +161,14 @@ export class ViettelProvider implements MailProvider {
           );
         const row = await client.fetchOne(
           String(key.uid),
-          { uid: true, envelope: true, flags: true, internalDate: true, size: true },
+          {
+            uid: true,
+            envelope: true,
+            flags: true,
+            internalDate: true,
+            size: true,
+            bodyStructure: true,
+          },
           { uid: true },
         );
         if (!row) throw new MailError('NOT_FOUND', 404, 'Không tìm thấy thư.');
@@ -187,6 +195,7 @@ export class ViettelProvider implements MailProvider {
         if (markSeen) await client.messageFlagsAdd(String(key.uid), ['\\Seen'], { uid: true });
         return {
           parsed,
+          parts: attachmentParts(row.bodyStructure),
           item: {
             ...summary(row, key.validity),
             unread: markSeen ? false : !row.flags?.has('\\Seen'),
@@ -199,40 +208,75 @@ export class ViettelProvider implements MailProvider {
   }
 
   async read(folder: Folder, id: string): Promise<MailMessage> {
-    const { item, parsed } = await this.source(folder, id, true);
-    return { ...item, ...messageBody(parsed) };
+    const { item, parsed, parts } = await this.source(folder, id, true);
+    return {
+      ...item,
+      ...messageBody(parsed),
+      attachments: parts.map(({ part: _part, ...file }) => file),
+    };
   }
 
   async attachment(folder: Folder, id: string, attachmentId: number) {
-    const { parsed } = await this.source(folder, id, false);
-    const file = parsed.attachments[attachmentId];
-    if (!file) throw new MailError('NOT_FOUND', 404, 'Không tìm thấy file.');
+    const key = messageKey(id);
+    return this.connection(async (client) => {
+      const lock = await client.getMailboxLock(await this.folderPath(client, folder), {
+        readOnly: true,
+      });
+      try {
+        if (!client.mailbox || String(client.mailbox.uidValidity) !== key.validity)
+          throw new MailError(
+            'MAILBOX_CHANGED',
+            409,
+            'Hộp thư đã thay đổi. Vui lòng tải lại danh sách.',
+          );
+        const row = await client.fetchOne(String(key.uid), { bodyStructure: true }, { uid: true });
+        const file = row && attachmentParts(row.bodyStructure)[attachmentId];
+        if (!file) throw new MailError('NOT_FOUND', 404, 'Không tìm thấy file.');
+        ensureMimeSize(file.size);
+        const { meta, content } = await client.download(String(key.uid), file.part, {
+          uid: true,
+          maxBytes: MAX_MIME + 1,
+        });
+        if (!content || !meta) throw new MailError('NOT_FOUND', 404, 'Không tải được file.');
+        const chunks: Buffer[] = [];
+        let size = 0;
+        try {
+          ensureMimeSize(meta.expectedSize || 0);
+          for await (const chunk of content) {
+            size += chunk.length;
+            ensureMimeSize(size);
+            chunks.push(Buffer.from(chunk));
+          }
+        } finally {
+          content.destroy();
+        }
+        return { content: new Uint8Array(Buffer.concat(chunks)), name: file.name, type: file.type };
+      } finally {
+        lock.release();
+      }
+    });
+  }
+
+  async prepareSend(draft: SendDraft, messageId: string, cachedPath?: string) {
+    const raw = await composeMessage(this.credentials.email, draft, messageId);
+    const path =
+      this.config.sentMode === 'append'
+        ? (cachedPath ?? (await this.connection((client) => this.folderPath(client, 'sent'))))
+        : undefined;
+    const append = path
+      ? async (mime: Buffer) => {
+          await this.connection(async (client) => {
+            if (!(await client.append(path, mime, ['\\Seen']))) throw Error('append rejected');
+          });
+        }
+      : undefined;
     return {
-      content: new Uint8Array(file.content),
-      name: file.filename || 'attachment',
-      type: file.contentType,
+      sentPath: path,
+      deliver: () => deliverMessage(this.credentials, this.config, draft, messageId, append, raw),
     };
   }
 
   async send(draft: SendDraft, messageId: string) {
-    // Resolve Sent before sending: configuration failure must not be mistaken for SMTP uncertainty.
-    const path =
-      this.config.sentMode === 'append'
-        ? await this.connection((client) => this.folderPath(client, 'sent'))
-        : undefined;
-    return deliverMessage(
-      this.credentials,
-      this.config,
-      draft,
-      messageId,
-      path
-        ? async (raw) => {
-            await this.connection(async (client) => {
-              const result = await client.append(path, raw, ['\\Seen']);
-              if (!result) throw Error('append rejected');
-            });
-          }
-        : undefined,
-    );
+    return (await this.prepareSend(draft, messageId)).deliver();
   }
 }

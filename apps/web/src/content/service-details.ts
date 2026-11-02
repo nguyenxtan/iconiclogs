@@ -1,11 +1,5 @@
 export interface ServiceDetail {
-  headline: string;
-  accent: string;
   introduction: string;
-  image: string;
-  imageAlt: string;
-  imageWidth: number;
-  imageHeight: number;
   scope: { title: string; description: string }[];
   prepare: string[];
   note: string;
@@ -13,14 +7,8 @@ export interface ServiceDetail {
 
 export const serviceDetails: Record<string, ServiceDetail> = {
   'sea-freight': {
-    headline: 'Kết nối đường biển.',
-    accent: 'Mở rộng giao thương.',
     introduction:
       'Cùng doanh nghiệp xây dựng phương án vận chuyển đường biển từ thông tin hàng hóa, cảng đi – đến và kế hoạch giao nhận. Mỗi chặng được trao đổi trong một lộ trình phối hợp rõ ràng.',
-    image: '/visuals/iconic-port-hero-v2.webp',
-    imageAlt: 'Minh họa tàu container và khu cảng trong ánh hoàng hôn',
-    imageWidth: 1915,
-    imageHeight: 821,
     scope: [
       {
         title: 'Làm rõ phương án vận chuyển',
@@ -48,14 +36,8 @@ export const serviceDetails: Record<string, ServiceDetail> = {
     note: 'Lịch vận chuyển, điều kiện tiếp nhận và các khoản chi phí được xác nhận theo từng lô hàng, tuyến vận chuyển và thời điểm trao đổi.',
   },
   'air-freight': {
-    headline: 'Chủ động thời gian.',
-    accent: 'Kết nối bằng đường hàng không.',
     introduction:
       'Khi thời gian là một yêu cầu quan trọng, phương án vận chuyển cần bắt đầu từ thông tin chính xác. ICONIC cùng bạn làm rõ hàng hóa, lịch dự kiến và các bước giao nhận bằng đường hàng không.',
-    image: '/visuals/iconic-home-air.webp',
-    imageAlt: 'Minh họa máy bay và hàng hóa được chuẩn bị tại sân bay',
-    imageWidth: 1256,
-    imageHeight: 576,
     scope: [
       {
         title: 'Trao đổi tuyến và mốc thời gian',
@@ -83,14 +65,8 @@ export const serviceDetails: Record<string, ServiceDetail> = {
     note: 'Khả năng tiếp nhận từng loại hàng, lịch bay và thời gian vận chuyển cần được xác nhận trước khi triển khai. Vui lòng chia sẻ đầy đủ đặc tính của hàng hóa.',
   },
   'road-freight': {
-    headline: 'Liền mạch từng chặng.',
-    accent: 'Kết nối trên mỗi cung đường.',
     introduction:
       'Từ điểm lấy hàng đến nơi giao nhận, mỗi chặng đường bộ cần được phối hợp theo điều kiện thực tế. ICONIC cùng bạn làm rõ địa điểm, khối lượng và lịch trình để thống nhất cách thực hiện.',
-    image: '/visuals/iconic-services-road.webp',
-    imageAlt: 'Minh họa xe tải container trên tuyến đường bộ',
-    imageWidth: 818,
-    imageHeight: 368,
     scope: [
       {
         title: 'Phối hợp lấy và giao hàng',
@@ -118,14 +94,8 @@ export const serviceDetails: Record<string, ServiceDetail> = {
     note: 'Lộ trình, phương án phương tiện và thời gian thực hiện được trao đổi theo điều kiện giao nhận thực tế. Các yêu cầu bốc xếp hoặc xử lý riêng cần thống nhất trước.',
   },
   customs: {
-    headline: 'Rõ hồ sơ.',
-    accent: 'Chủ động bước thông quan.',
     introduction:
       'Một bộ hồ sơ đầy đủ là khởi đầu cho việc phối hợp thủ tục xuất nhập khẩu. ICONIC cùng doanh nghiệp làm rõ loại hình, chứng từ và các thông tin cần chuẩn bị cho từng lô hàng.',
-    image: '/visuals/iconic-port-hero-v2.webp',
-    imageAlt: 'Minh họa bối cảnh vận chuyển hàng hóa xuất nhập khẩu tại cảng biển',
-    imageWidth: 1915,
-    imageHeight: 821,
     scope: [
       {
         title: 'Rà soát thông tin ban đầu',
@@ -153,14 +123,8 @@ export const serviceDetails: Record<string, ServiceDetail> = {
     note: 'Danh mục trên là thông tin để bắt đầu trao đổi. Hồ sơ và yêu cầu thủ tục cụ thể được xác định theo loại hàng, loại hình giao dịch và quy định áp dụng tại thời điểm thực hiện.',
   },
   'warehousing-distribution': {
-    headline: 'Sắp xếp hôm nay.',
-    accent: 'Sẵn sàng cho chặng tiếp theo.',
     introduction:
       'Nhu cầu lưu kho và phân phối gắn liền với nhịp vận hành của mỗi doanh nghiệp. ICONIC phối hợp làm rõ yêu cầu về hàng hóa, thời gian lưu và các điểm giao để cùng lựa chọn phương án phù hợp.',
-    image: '/visuals/iconic-services-road.webp',
-    imageAlt: 'Minh họa vận tải đường bộ kết nối các chặng lưu kho và phân phối',
-    imageWidth: 818,
-    imageHeight: 368,
     scope: [
       {
         title: 'Trao đổi nhu cầu lưu kho',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sendOnce, type SendRecord, type SendStore } from '../src/server/core/send';
+import { sendOnce, prepareAndSend, type SendRecord, type SendStore } from '../src/server/core/send';
 import type { SendResult } from '../src/shared/contracts';
 
 function memoryStore(): SendStore {
@@ -25,6 +25,26 @@ const success: SendResult = {
   rejected: [],
 };
 describe('durable submission boundary', () => {
+  it('does not claim or mark an unsent message unknown when preflight fails', async () => {
+    const store = memoryStore();
+    await expect(
+      prepareAndSend(store, 'preflight', 'same', async () => {
+        throw Error('Sent lookup unavailable');
+      }),
+    ).rejects.toThrow();
+    expect(await store.get('preflight')).toBeUndefined();
+    expect(
+      await prepareAndSend(store, 'preflight', 'same', async () => async () => success),
+    ).toEqual(success);
+    let prepared = false;
+    expect(
+      await prepareAndSend(store, 'preflight', 'same', async () => {
+        prepared = true;
+        throw Error('must not retry preflight');
+      }),
+    ).toEqual(success);
+    expect(prepared).toBe(false);
+  });
   it('claims before network and prevents concurrent and repeated delivery', async () => {
     const store = memoryStore();
     let calls = 0;

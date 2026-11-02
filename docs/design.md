@@ -104,3 +104,20 @@ Deploy là giai đoạn riêng: cấu hình secrets do operator giữ, kiểm ch
 trên cloud, xác nhận nhận/gửi/file/Sent, chốt hostname sau khi kiểm tra native
 client đang dùng `mail.iconiclogs.com`, rồi mới rollout. Không thay MX sang web
 Worker, mua server, deploy hoặc sửa hệ thống cũ trong công việc local này.
+
+## Review và chỉnh sửa
+
+Claude review read-only ngày 02/11: giao diện đầu chưa đạt; đã chỉ rõ lỗi bố cục,
+ảnh viền/chữ cắt, logo khó đọc và copy lặp. Người triển khai tự sửa theo hướng
+hero hai cột, ít khẩu hiệu, thang chữ rõ, dịch vụ dạng hàng, footer gọn; không
+gọi thêm Claude để sửa hoặc review lại. Chưa có nghiệm thu gu thiết kế từ chủ dự án.
+
+Đã sửa preflight gửi trước claim, trạng thái Sent do provider quản lý không
+được coi là đã xác nhận; lỗi auth thu hồi phiên; download theo MIME part; cache
+đường dẫn Sent 10 phút và giới hạn CPU Worker. Các điểm chỉ có thể kiểm chứng
+trên cloud (TLS/SMTP/Sent thật, CPU/RAM, provider throttle) giữ ở bước deploy.
+
+Các chi tiết chưa mở rộng trong V1: nối toàn bộ References, tên hiển thị From,
+link HTML có thể bấm, và chính sách xóa send ledger. Không tự xóa ledger theo
+gợi ý 7 ngày vì replay key cũ có thể gửi trùng. Bundle production đã được kiểm
+tra không có dữ liệu hay nút demo; import tĩnh hiện được tree-shake.

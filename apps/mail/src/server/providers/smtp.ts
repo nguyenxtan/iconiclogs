@@ -5,6 +5,7 @@ import type { Credentials } from '../core/session';
 import type { ProviderConfig } from '../config';
 import type { SendDraft, SendResult } from '../../shared/contracts';
 import { composeMessage } from './mime';
+import { isAuthError, ProviderAuthError } from '../core/errors';
 
 export async function deliverMessage(
   credentials: Credentials,
@@ -12,8 +13,9 @@ export async function deliverMessage(
   draft: SendDraft,
   messageId: string,
   append?: (raw: Buffer) => Promise<void>,
+  preparedRaw?: Buffer,
 ): Promise<SendResult> {
-  const raw = await composeMessage(credentials.email, draft, messageId);
+  const raw = preparedRaw ?? (await composeMessage(credentials.email, draft, messageId));
   const transport = nodemailer.createTransport({
     host: config.host,
     port: 465,
@@ -61,6 +63,7 @@ export async function deliverMessage(
       raw,
     });
   } catch (error) {
+    if (isAuthError(error)) throw new ProviderAuthError();
     const code = (error as { responseCode?: number }).responseCode;
     const definite = typeof code === 'number' && code >= 400 && code < 600;
     return {
@@ -75,7 +78,7 @@ export async function deliverMessage(
   const accepted = (info.accepted || []).map(String),
     rejected = (info.rejected || []).map(String);
   if (!accepted.length) return { status: 'failed', sentCopy: 'not-applicable', accepted, rejected };
-  let sentCopy: SendResult['sentCopy'] = 'saved';
+  let sentCopy: SendResult['sentCopy'] = append ? 'saved' : 'provider-managed';
   if (append) {
     try {
       await append(raw);

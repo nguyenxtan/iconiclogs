@@ -3,7 +3,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PageIntro from '../components/PageIntro.astro';
-import CargoPreparation from '../components/CargoPreparation.astro';
 import Icon from '../components/Icon.astro';
 import { company } from '../content/company';
 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`;
@@ -17,23 +16,12 @@ const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURICompo
   <main id="noi-dung" tabindex="-1">
     <PageIntro
       eyebrow="LIÊN HỆ ICONIC"
-      title="Kết nối hôm nay."
-      accent="Sẵn sàng hành trình mới."
+      title="Liên hệ ICONIC"
+      accent=""
       description="Một lô hàng cần vận chuyển, một phương án cần làm rõ. Chia sẻ nhu cầu của bạn để cùng ICONIC xác định các bước tiếp theo."
       breadcrumbs={[{ label: 'Liên hệ' }]}
     />
     <section class="container contact-page-grid" aria-labelledby="contact-channels-title">
-      <div class="contact-page-visual">
-        <img
-          src="/visuals/iconic-port-hero-v2.webp"
-          alt="Minh họa tàu container trên hành trình qua cảng biển"
-          width="1915"
-          height="821"
-          fetchpriority="high"
-        /><div>
-          <span>ICONIC LOGISTICS · VIỆT NAM</span><p>Mỗi cuộc trao đổi.<br />Một khởi đầu mới.</p>
-        </div>
-      </div>
       <div class="contact-page-channels">
         <h2 id="contact-channels-title">Trao đổi cùng <em>ICONIC.</em></h2><address>
           <div>
@@ -61,19 +49,17 @@ const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURICompo
         ><p class="contact-page-note">
           Email hoặc gọi trực tiếp để trao đổi loại hàng, tuyến vận chuyển và thời gian dự kiến.
         </p>
-      </div>
-    </section>
-    <div class="contact-preparation-band"><div class="container"><CargoPreparation /></div></div>
-    <section class="container contact-next" aria-labelledby="contact-next-title">
-      <div>
-        <p class="eyebrow">TRƯỚC KHI TRAO ĐỔI</p><h2 id="contact-next-title">
-          Tìm hiểu thêm về <em>ICONIC.</em>
-        </h2>
-      </div><div>
-        <a href="/services"><span>Các dịch vụ logistics</span><Icon name="arrow" size={20} /></a><a
-          href="/brochure"><span>Brochure Việt / Anh</span><Icon name="arrow" size={20} /></a
+      </div><aside class="contact-side">
+        <p class="eyebrow">ĐỂ TRAO ĐỔI NHANH HƠN</p><h2>Thông tin lô hàng</h2><ol>
+          <li>Tên hàng, trọng lượng và kích thước.</li><li>
+            Điểm đi, điểm đến và yêu cầu giao nhận.
+          </li><li>Ngày hàng sẵn sàng và thời gian dự kiến.</li><li>
+            Chứng từ, điều kiện giao hàng nếu đã có.
+          </li>
+        </ol><a class="text-link" href="/services"
+          >Tìm dịch vụ phù hợp <Icon name="arrow" size={18} /></a
         >
-      </div>
+      </aside>
     </section>
   </main>
   <Footer />

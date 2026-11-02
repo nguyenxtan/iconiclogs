@@ -52,6 +52,8 @@ SQLite Durable Objects local, kiểm tra phiên mã hóa, alarm xóa credential,
 - `apps/mail`: React/Vite và Hono Worker cùng origin; IMAP/SMTP qua Viettel.
   `SessionVault` giữ credential mã hóa trong phiên 30 phút; `MailboxCoordinator`
   lưu trạng thái chống gửi trùng. Hộp thư chính thức vẫn ở Viettel.
+  Mail cần Workers Paid; cấu hình giới hạn CPU 30 giây/request. Chưa provision
+  hoặc mua gói trong công việc này; CPU/bộ nhớ với MIME lớn cần đo trên cloud.
 - `packages/brand`: logo, mark, font và token dùng chung.
 
 Trước khi bật Mail, operator xác nhận host Viettel, tài khoản được phép,

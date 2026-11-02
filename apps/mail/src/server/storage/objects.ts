@@ -6,11 +6,12 @@ import {
   type SessionRecord,
   sha256,
 } from '../core/session';
-import { sendOnce, type SendRecord, type SendStore } from '../core/send';
+import { prepareAndSend, type SendRecord, type SendStore } from '../core/send';
 import type { SendDraft } from '../../shared/contracts';
 import type { Env } from '../worker';
 import { configuration } from '../config';
 import { ViettelProvider } from '../providers/viettel';
+import { isAuthError, SendPreparationError, MailError } from '../core/errors';
 
 export class SessionVault extends DurableObject<Env> {
   async create(credentials: Credentials, id: string) {
@@ -79,12 +80,37 @@ export class MailboxCoordinator extends DurableObject<Env> {
         }),
       put: (id, record) => storage.put('send:' + id, record),
     };
-    // Keep only delivery status, hashes and recipient addresses. Never persist MIME or credentials here.
-    return sendOnce(store, key, fingerprint, () =>
-      new ViettelProvider(credentials, config.provider).send(
-        draft,
-        `<${key}@${credentials.email.split('@')[1]}>`,
-      ),
-    );
+    // Credentials and prepared MIME stay request-local. Only delivery metadata is durable.
+    try {
+      const result = await prepareAndSend(store, key, fingerprint, async () => {
+        const cacheKey = JSON.stringify(config.provider);
+        const cached = await storage.get<{ scope: string; path: string; until: number }>(
+          'sent-path',
+        );
+        const path =
+          cached?.scope === cacheKey && cached.until > Date.now() ? cached.path : undefined;
+        const prepared = await new ViettelProvider(credentials, config.provider).prepareSend(
+          draft,
+          `<${key}@${credentials.email.split('@')[1]}>`,
+          path,
+        );
+        if (prepared.sentPath)
+          await storage.put('sent-path', {
+            scope: cacheKey,
+            path: prepared.sentPath,
+            until: Date.now() + 600000,
+          });
+        return prepared.deliver;
+      });
+      if (result.sentCopy === 'unconfirmed') await storage.delete('sent-path');
+      return { result };
+    } catch (error) {
+      // Explicit result discriminants survive DO RPC without exposing provider transcripts.
+      if (isAuthError(error)) return { error: 'AUTH' as const };
+      if (error instanceof SendPreparationError) return { error: 'PREPARATION' as const };
+      if (error instanceof MailError && error.code === 'SEND_CONFLICT')
+        return { error: 'CONFLICT' as const };
+      throw error;
+    }
   }
 }

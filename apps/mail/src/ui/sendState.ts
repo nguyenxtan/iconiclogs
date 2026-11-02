@@ -34,6 +34,13 @@ export function outcomeNotice(result: SendResult): {
       message:
         'Máy chủ đã chấp nhận thư, nhưng bản trong Đã gửi chưa được xác nhận. Vui lòng không gửi lại thư này.',
     };
+  if (result.sentCopy === 'provider-managed')
+    return {
+      state: 'delivered',
+      tone: 'success',
+      message:
+        'Máy chủ đã chấp nhận thư. Bản Đã gửi do nhà cung cấp quản lý; webmail chưa xác nhận bản sao.',
+    };
   return {
     state: 'delivered',
     tone: 'success',

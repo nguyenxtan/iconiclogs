@@ -30,21 +30,6 @@ export function Login({
           alt="Tàu container và hoạt động tại cảng biển"
         />
         <div className="story-shade" />
-        <div className="story-copy">
-          <span className="eyebrow">ICONIC LOGISTICS</span>
-          <h1>
-            Kết nối vững vàng.
-            <br />
-            Hành trình vươn xa.
-          </h1>
-          <p>
-            Mỗi thông điệp là khởi đầu
-            <br />
-            cho một hành trình kết nối.
-          </p>
-          <div className="story-rule" />
-        </div>
-        <span className="story-caption">YOUR CONNECTION. OUR COMMITMENT.</span>
       </section>
       <section className="login-panel">
         <div className="login-top">
@@ -61,11 +46,8 @@ export function Login({
             <Icon name="mail" size={26} />
           </div>
           <span className="eyebrow">KHÔNG GIAN LÀM VIỆC</span>
-          <h2>Chào mừng trở lại.</h2>
-          <p className="login-intro">
-            Đăng nhập để kết nối với đội ngũ
-            <br className="desktop-break" /> và những hành trình phía trước.
-          </p>
+          <h2>Đăng nhập ICONIC Mail</h2>
+          <p className="login-intro">Sử dụng hộp thư công ty của bạn.</p>
           <form onSubmit={submit} className="login-form">
             <label htmlFor="email">Email công ty</label>
             <input
@@ -116,7 +98,7 @@ export function Login({
         </div>
         <footer className="login-footer">
           <span>© {new Date().getFullYear()} ICONIC Logistics</span>
-          <span>Kết nối bằng sự tận tâm.</span>
+          <a href="https://iconiclogs.com">Website ICONIC</a>
         </footer>
       </section>
     </main>

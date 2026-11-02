@@ -49,7 +49,7 @@ export interface SendDraft {
 }
 export interface SendResult {
   status: 'sent' | 'partial' | 'unknown' | 'failed';
-  sentCopy: 'saved' | 'unconfirmed' | 'not-applicable';
+  sentCopy: 'saved' | 'unconfirmed' | 'provider-managed' | 'not-applicable';
   accepted: string[];
   rejected: string[];
 }

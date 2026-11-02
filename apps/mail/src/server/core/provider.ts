@@ -5,6 +5,22 @@ import type {
   SendDraft,
   SendResult,
 } from '../../shared/contracts';
+import { isAuthError, unauthorized } from './errors';
+
+export async function authenticatedCall<T>(
+  operation: () => Promise<T>,
+  revoke: () => Promise<void>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (isAuthError(error)) {
+      await revoke();
+      throw unauthorized();
+    }
+    throw error;
+  }
+}
 
 export interface MailAttachment {
   content: Uint8Array;

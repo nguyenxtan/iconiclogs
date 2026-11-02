@@ -75,7 +75,7 @@ svg {
 }
 .eyebrow {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.8px;
   color: var(--muted);
@@ -178,7 +178,7 @@ svg {
 }
 .story-copy .eyebrow {
   color: #e5d0ba;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 2.5px;
 }
 .story-copy h1 {
@@ -206,7 +206,7 @@ svg {
   bottom: 37px;
   left: 9%;
   letter-spacing: 2.8px;
-  font-size: 9px;
+  font-size: 12px;
   color: #d0cbc2;
 }
 .login-panel {
@@ -236,7 +236,7 @@ svg {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -262,7 +262,7 @@ svg {
 }
 .login-form-wrap > .eyebrow {
   color: var(--brand);
-  font-size: 9px;
+  font-size: 12px;
 }
 .login-form-wrap h2 {
   font-family: var(--font-editorial);
@@ -283,7 +283,7 @@ svg {
   flex-direction: column;
 }
 .login-form label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   margin-bottom: 9px;
 }
@@ -316,7 +316,7 @@ svg {
   gap: 7px;
   margin-top: 17px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .demo-entry {
   display: flex;
@@ -328,7 +328,7 @@ svg {
   margin-top: 29px;
 }
 .demo-entry > span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .demo-entry button {
@@ -337,14 +337,14 @@ svg {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   padding: 5px;
 }
 .login-footer {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.7;
 }
@@ -370,7 +370,7 @@ svg {
   padding: 8px 20px;
   background: #eee4cf;
   border-bottom: 1px solid #ded2b8;
-  font-size: 10px;
+  font-size: 12px;
   color: #5e4c31;
   line-height: 1.6;
 }
@@ -381,7 +381,7 @@ svg {
   background: none;
   color: #6b3323;
   text-decoration: underline;
-  font-size: 10px;
+  font-size: 12px;
   margin-left: 12px;
   white-space: nowrap;
 }
@@ -448,7 +448,7 @@ svg {
 }
 .folder-count {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 12px;
   padding: 1px 5px;
 }
 .sidebar-bottom {
@@ -505,7 +505,7 @@ svg {
   white-space: nowrap;
 }
 .account strong {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
 }
@@ -531,7 +531,7 @@ svg {
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   padding: 0 30px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .workspace-header strong {
@@ -547,7 +547,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .connection-dot {
   width: 5px;
@@ -618,7 +618,7 @@ svg {
   place-items: center;
   background: #eee9e2;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0;
   min-width: 22px;
   height: 21px;
@@ -635,7 +635,7 @@ svg {
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 .message-items {
   min-height: 0;
@@ -646,8 +646,8 @@ svg {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 114px;
-  padding: 21px 24px;
+  min-height: 76px;
+  padding: 15px 20px;
   background: transparent;
   border-bottom: 1px solid #ece7e0;
   text-align: left;
@@ -667,10 +667,10 @@ svg {
   align-items: center;
   gap: 12px;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .sender-name {
-  font-size: 11px;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -680,7 +680,7 @@ svg {
   gap: 7px;
 }
 .row-top time {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -693,7 +693,7 @@ svg {
 }
 .row-subject {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   width: 100%;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -710,7 +710,7 @@ svg {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   overflow: hidden;
 }
@@ -726,7 +726,7 @@ svg {
   padding: 0 20px 0 26px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 .pagination > div {
   display: flex;
@@ -748,7 +748,7 @@ svg {
   margin: 18px 0 4px;
 }
 .pane-state p {
-  font-size: 11px;
+  font-size: 12px;
   margin-bottom: 22px;
 }
 .empty-icon {
@@ -805,7 +805,7 @@ svg {
 .reader-toolbar .button {
   min-height: 32px;
   padding: 7px 9px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .reader-welcome {
   margin: auto;
@@ -856,13 +856,13 @@ svg {
 }
 .reader-welcome p {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.9;
 }
 .welcome-signature {
   display: block;
   color: #968877;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 2px;
   margin-top: 45px;
@@ -912,14 +912,14 @@ svg {
   min-width: 0;
 }
 .mail-sender strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   display: block;
   margin: 1px 0 4px;
 }
 .mail-sender div > span {
   display: block;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   overflow-wrap: anywhere;
   line-height: 1.8;
@@ -943,7 +943,7 @@ svg {
 }
 .html-note {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -964,7 +964,7 @@ svg {
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--muted);
   margin: 0 0 15px;
@@ -986,7 +986,7 @@ svg {
 }
 .attachment-card strong {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
@@ -994,7 +994,7 @@ svg {
   display: block;
   color: var(--muted);
   margin-top: 6px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .file-symbol {
   color: var(--copper);
@@ -1007,7 +1007,7 @@ svg {
   margin-top: 40px;
 }
 .reply-footer .button {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Composer */
@@ -1061,7 +1061,7 @@ svg {
   align-items: center;
   gap: 17px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .composer-from strong {
   font-weight: 400;
@@ -1084,7 +1084,7 @@ svg {
   min-height: 44px;
 }
 .recipient-field label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   min-width: 23px;
 }
@@ -1100,7 +1100,7 @@ svg {
 .recipient-field button {
   background: none;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   padding: 8px;
 }
 .composer-subject {
@@ -1145,7 +1145,7 @@ svg {
   gap: 12px;
 }
 .composer-footer > span {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
 }
 .draft-files {
@@ -1162,7 +1162,7 @@ svg {
   background: var(--canvas);
   border: 1px solid var(--line);
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 12px;
   max-width: 100%;
 }
 .draft-files > div > span {
@@ -1171,7 +1171,7 @@ svg {
 .draft-files small {
   color: var(--muted);
   margin-left: 5px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .draft-files .icon-button {
   width: 25px;
@@ -1233,7 +1233,7 @@ svg {
     padding-right: 9%;
   }
   .login-top a {
-    font-size: 9px;
+    font-size: 12px;
   }
   .login-top {
     gap: 10px;
@@ -1262,7 +1262,7 @@ svg {
     font-size: 29px;
   }
   .reader-welcome p {
-    font-size: 10px;
+    font-size: 12px;
   }
   .reader-welcome .eyebrow {
     line-height: 2;
@@ -1292,7 +1292,7 @@ svg {
     height: 26px;
   }
   .account strong {
-    font-size: 9px;
+    font-size: 12px;
   }
   .login-story {
     min-height: 700px;
@@ -1328,7 +1328,7 @@ svg {
   }
   .login-top a {
     display: inline-flex;
-    font-size: 10px;
+    font-size: 12px;
   }
   .login-form-wrap {
     padding: 50px 0;
@@ -1348,12 +1348,12 @@ svg {
     height: 100dvh;
   }
   .demo-banner {
-    font-size: 9px;
+    font-size: 12px;
     padding: 8px 14px;
     gap: 7px;
   }
   .demo-banner button {
-    font-size: 9px;
+    font-size: 12px;
     margin-left: 0;
   }
   .mobile-header {
@@ -1394,7 +1394,7 @@ svg {
     flex: 1;
     justify-content: center;
     gap: 9px;
-    font-size: 11px;
+    font-size: 12px;
     border-radius: 0;
     padding: 14px 10px;
     border-bottom: 2px solid transparent;
@@ -1405,7 +1405,7 @@ svg {
   }
   .folder-count {
     margin-left: 3px;
-    font-size: 9px;
+    font-size: 12px;
   }
   .mobile-header {
     order: -1;
@@ -1457,7 +1457,7 @@ svg {
     letter-spacing: 0.8px;
   }
   .reader-toolbar .button {
-    font-size: 10px;
+    font-size: 12px;
   }
   .list-heading {
     padding: 25px 25px 24px;
@@ -1473,11 +1473,11 @@ svg {
   }
   .list-subheading {
     padding: 13px 25px;
-    font-size: 9px;
+    font-size: 12px;
   }
   .message-row {
-    padding: 22px 24px;
-    min-height: 118px;
+    padding: 16px 22px;
+    min-height: 80px;
   }
   .sender-name,
   .row-subject {
@@ -1485,7 +1485,7 @@ svg {
   }
   .row-top time,
   .row-meta {
-    font-size: 10px;
+    font-size: 12px;
   }
   .pagination {
     min-height: 51px;
@@ -1521,10 +1521,10 @@ svg {
     font-size: 12px;
   }
   .mail-sender div > span {
-    font-size: 10px;
+    font-size: 12px;
   }
   .mail-sender time {
-    font-size: 9px;
+    font-size: 12px;
   }
   .composer-overlay {
     padding: 0;
@@ -1597,7 +1597,7 @@ svg {
     gap: 5px;
   }
   .composer-footer .button {
-    font-size: 11px;
+    font-size: 12px;
   }
   .demo-banner > svg {
     display: none;
@@ -1645,7 +1645,7 @@ svg {
   padding-left: 18px;
   border-left: 1px solid #d9cfc2;
   letter-spacing: 2.2px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 .sidebar-brand-row {
@@ -1748,7 +1748,7 @@ svg {
   }
   .login-top .brand-mail-label {
     padding-left: 12px;
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 @media (max-width: 760px) {
@@ -1763,10 +1763,10 @@ svg {
   }
   .login-top .brand-mail-label {
     padding-left: 12px;
-    font-size: 9px;
+    font-size: 12px;
   }
   .login-top > a:not(.login-brand) {
-    font-size: 9px;
+    font-size: 12px;
   }
   .mobile-brand {
     gap: 15px;
@@ -1776,11 +1776,21 @@ svg {
   }
   .mobile-brand .brand-mail-label {
     padding-left: 14px;
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 @media (max-width: 380px) {
   .login-top > a:not(.login-brand) {
     display: none;
   }
+}
+
+.row-top time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.reader-welcome p {
+  font-size: 14px;
+  color: var(--muted);
 }

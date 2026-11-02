@@ -6,7 +6,7 @@ interface Props {
   description?: string;
 }
 const {
-  title = 'Cùng bắt đầu hành trình tiếp theo.',
+  title = 'Trao đổi phương án cho lô hàng của bạn.',
   description = 'Chia sẻ loại hàng, tuyến vận chuyển và thời gian dự kiến. ICONIC cùng bạn làm rõ phương án và các bước phối hợp.',
 } = Astro.props;
 ---
@@ -14,10 +14,10 @@ const {
 <section class="page-contact-cta">
   <div class="container page-contact-inner">
     <div>
-      <p class="eyebrow">MỘT CUỘC TRAO ĐỔI, MỘT KẾT NỐI MỚI</p><h2>{title}</h2><p>{description}</p>
+      <h2>{title}</h2><p>{description}</p>
     </div>
     <div class="page-contact-actions">
-      <a class="button button-light" href={`mailto:${company.email}`}
+      <a class="button button-brand" href={`mailto:${company.email}`}
         >Gửi yêu cầu qua email <Icon name="northeast" size={20} /></a
       ><a href="/contact">Thông tin liên hệ <Icon name="arrow" size={18} /></a>
     </div>

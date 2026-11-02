@@ -59,7 +59,7 @@ export function Reader({
           <Icon name="arrow" />
         </button>
         <span>
-          <Icon name="lock" size={13} /> KHÔNG GIAN THƯ CỦA BẠN
+          <Icon name="lock" size={13} /> Hộp thư ICONIC
         </span>
         {message && (
           <button className="button subtle" onClick={() => onReply(message)}>
@@ -87,21 +87,7 @@ export function Reader({
         </div>
       ) : !message ? (
         <div className="reader-welcome">
-          <div className="welcome-art">
-            <div />
-            <Icon name="mail" size={47} />
-            <i />
-          </div>
-          <span className="eyebrow">MỖI THÔNG ĐIỆP, MỘT KẾT NỐI</span>
-          <h2>Chào một ngày mới.</h2>
-          <p>
-            Chọn một thư để bắt đầu.
-            <br />
-            Những hành trình tốt đẹp luôn từ kết nối nhỏ.
-          </p>
-          <span className="welcome-signature">
-            ICONIC <span>MAIL</span>
-          </span>
+          <p>Chọn một thư để đọc.</p>
         </div>
       ) : (
         <article className="mail-article">

@@ -31,6 +31,16 @@ it('preserves actual SMTP acceptance when Sent APPEND fails', async () => {
   expect(append).toHaveBeenCalledTimes(1);
   expect(send.mock.calls[0]![0].raw.toString()).toContain('Message-ID: <test@iconiclogs.com>');
 });
+it('never claims that an unchecked provider-managed Sent copy was saved', async () => {
+  smtp(vi.fn().mockResolvedValue({ accepted: draft.to, rejected: [] }));
+  const result = await deliverMessage(
+    credentials,
+    { ...config, sentMode: 'provider' },
+    draft,
+    '<provider@iconiclogs.com>',
+  );
+  expect(result.sentCopy).toBe('provider-managed');
+});
 it('does not append Sent or retry when SMTP outcome is unknown', async () => {
   const send = vi.fn().mockRejectedValue(Error('connection lost'));
   smtp(send);

@@ -23,29 +23,16 @@ const related = services.filter((item) => item.slug !== service.slug);
   <main id="noi-dung" tabindex="-1">
     <PageIntro
       eyebrow={`${service.number} / ${service.title.toUpperCase()}`}
-      title={detail.headline}
-      accent={detail.accent}
+      title={service.title}
+      accent=""
       description={detail.introduction}
       breadcrumbs={[{ label: 'Dịch vụ', href: '/services' }, { label: service.title }]}
     />
-    <figure class="container page-wide-image detail-image">
-      <img
-        src={detail.image}
-        alt={detail.imageAlt}
-        width={detail.imageWidth}
-        height={detail.imageHeight}
-        fetchpriority="high"
-      /><figcaption>
-        <span>{service.english.toUpperCase()} · ICONIC LOGISTICS</span><span
-          >Hình ảnh minh họa bối cảnh dịch vụ.</span
-        >
-      </figcaption>
-    </figure>
     <section class="container page-section editorial-split" aria-labelledby="scope-title">
       <div>
-        <p class="eyebrow">PHẠM VI PHỐI HỢP</p><h2 id="scope-title">
-          Từ nhu cầu cụ thể.<br /><em>Đến phương án phù hợp.</em>
-        </h2><p class="section-intro">
+        <p class="eyebrow">PHẠM VI PHỐI HỢP</p><h2 id="scope-title">Phạm vi dịch vụ</h2><p
+          class="section-intro"
+        >
           Phạm vi thực hiện được trao đổi và thống nhất theo đặc điểm của từng lô hàng.
         </p><a
           class="text-link"
@@ -73,9 +60,9 @@ const related = services.filter((item) => item.slug !== service.slug);
     <section class="detail-preparation">
       <div class="container editorial-split">
         <div>
-          <p class="eyebrow">THÔNG TIN CẦN CHUẨN BỊ</p><h2>
-            Bắt đầu bằng<br /><em>những điều đã rõ.</em>
-          </h2><p class="section-intro">
+          <p class="eyebrow">THÔNG TIN CẦN CHUẨN BỊ</p><h2>Thông tin cần chuẩn bị</h2><p
+            class="section-intro"
+          >
             Gửi thông tin bạn hiện có. Chúng tôi sẽ cùng làm rõ những nội dung cần bổ sung cho
             phương án cụ thể.
           </p>
@@ -96,9 +83,7 @@ const related = services.filter((item) => item.slug !== service.slug);
     <section class="container page-section" aria-labelledby="related-title">
       <div class="related-heading">
         <div>
-          <p class="eyebrow">KẾT NỐI THÊM NHỮNG CHẶNG ĐƯỜNG</p><h2 id="related-title">
-            Các dịch vụ liên quan.
-          </h2>
+          <p class="eyebrow">DỊCH VỤ KHÁC</p><h2 id="related-title">Các dịch vụ liên quan.</h2>
         </div><a class="text-link" href="/services"
           >Tất cả dịch vụ <Icon name="arrow" size={20} /></a
         >

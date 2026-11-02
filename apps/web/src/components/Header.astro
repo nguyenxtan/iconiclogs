@@ -1,6 +1,7 @@
 ---
 import { company } from '../content/company';
 import Icon from './Icon.astro';
+import Logo from './Logo.astro';
 const links = [
   { href: '/about', label: 'Về ICONIC' },
   { href: '/services', label: 'Dịch vụ' },
@@ -14,7 +15,7 @@ const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand-mark" href="/" aria-label="ICONIC Logistics — về đầu trang">
-      <img src="/brand/iconic-logo.png" alt="ICONIC Logistics Việt Nam" width="500" height="500" />
+      <Logo />
     </a>
     <nav class="desktop-nav" aria-label="Điều hướng chính">
       {
@@ -33,7 +34,9 @@ const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
         ))
       }
     </nav>
-    <a class="mail-link" href={company.mailUrl}>ICONIC Mail <Icon name="northeast" size={15} /></a>
+    <a class="header-contact" href={`tel:+84${company.phone.slice(1)}`}
+      >{company.phoneDisplay} <Icon name="phone" size={16} /></a
+    >
     <details class="mobile-menu">
       <summary aria-label="Mở hoặc đóng điều hướng"
         ><span>Menu</span><span class="menu-lines" aria-hidden="true"></span></summary

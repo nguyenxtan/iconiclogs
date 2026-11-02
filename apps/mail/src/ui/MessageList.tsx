@@ -33,7 +33,6 @@ export function MessageList({
     <section className="message-list" aria-label="Danh sách thư" aria-busy={busy}>
       <header className="list-heading">
         <div>
-          <span className="eyebrow">KHÔNG GIAN KẾT NỐI</span>
           <h1>
             {folderLabel(folder)}
             <span className="list-total">{data?.total ?? '—'}</span>
@@ -87,13 +86,12 @@ export function MessageList({
                     {message.unread && <i className="unread-dot" />}
                     {person?.name || person?.address || 'Không có người nhận'}
                   </span>
-                  <time dateTime={message.date}>{shortDate(message.date)}</time>
+                  <time dateTime={message.date}>
+                    {message.hasAttachments && <Icon name="attachment" size={13} />}
+                    {shortDate(message.date)}
+                  </time>
                 </div>
                 <span className="row-subject">{message.subject || '(Không có tiêu đề)'}</span>
-                <span className="row-meta">
-                  {person?.address}
-                  {message.hasAttachments && <Icon name="attachment" size={14} />}
-                </span>
               </button>
             );
           })
@@ -102,9 +100,7 @@ export function MessageList({
             <span className="empty-icon">
               <Icon name={folder === 'inbox' ? 'inbox' : 'sent'} size={30} />
             </span>
-            <h2>
-              {folder === 'inbox' ? 'Một khởi đầu thật nhẹ nhàng' : 'Những kết nối đang chờ bạn'}
-            </h2>
+            <h2>{folder === 'inbox' ? 'Chưa có thư' : 'Chưa có thư đã gửi'}</h2>
             <p>
               {folder === 'inbox'
                 ? 'Thư mới sẽ xuất hiện tại đây.'

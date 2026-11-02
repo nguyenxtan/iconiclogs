@@ -1,0 +1,332 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 64px;
+  padding-block: 56px 80px;
+}
+.hero h1 {
+  font-size: clamp(40px, 4.25vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+.hero h1 em {
+  color: var(--brand);
+}
+.hero-description {
+  font-size: 17px;
+  line-height: 1.75;
+  margin: 28px 0;
+  max-width: 480px;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px;
+}
+.hero-phone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.hero-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.hero-photo {
+  aspect-ratio: 1.16;
+  overflow: hidden;
+}
+.hero-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 78% 50%;
+}
+.home-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 48px;
+  margin-bottom: 36px;
+}
+.home-section-heading > p {
+  max-width: 380px;
+  font-size: 16px;
+}
+.home-services {
+  padding-bottom: 80px;
+}
+.service-row {
+  display: grid;
+  grid-template-columns: 30px 30px 1.1fr 1.2fr 24px;
+  align-items: center;
+  gap: 24px;
+  padding-block: 27px;
+  border-top: 1px solid var(--line);
+  transition: color 0.2s;
+}
+.service-row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.service-number {
+  font-size: 12px;
+  color: var(--muted);
+}
+.service-row > svg {
+  color: var(--brand);
+}
+.service-row h3 {
+  font: 400 25px/1.3 var(--font-editorial);
+}
+.service-row p {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.service-row:hover h3 {
+  color: var(--brand);
+}
+.services-more {
+  margin-top: 22px;
+}
+.home-about {
+  padding-block: 64px 88px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+  border-top: 1px solid var(--line);
+}
+.home-about h2 {
+  margin-bottom: 24px;
+}
+.home-about > div > p:not(.eyebrow) {
+  max-width: 490px;
+  margin-bottom: 20px;
+}
+.home-principles article {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  padding-block: 22px;
+}
+.home-principles article:first-child {
+  padding-top: 0;
+}
+.home-principles article > span {
+  font-size: 12px;
+  color: var(--copper-text);
+  padding-top: 5px;
+}
+.home-principles h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+.home-principles p {
+  font-size: 15px;
+}
+.home-process {
+  padding-block: 64px;
+  background: #f2ece3;
+}
+.process-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+.process-number {
+  display: block;
+  font: 400 30px/1 var(--font-editorial);
+  color: var(--brand);
+  margin-bottom: 20px;
+}
+.process-list h3 {
+  font-size: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #d4cabe;
+  margin-bottom: 12px;
+}
+.process-list p {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.home-contact {
+  padding-block: 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+}
+.home-contact h2 {
+  margin-bottom: 20px;
+}
+.home-contact > div > p:not(.eyebrow) {
+  max-width: 460px;
+  margin-bottom: 28px;
+}
+.home-contact address {
+  font-style: normal;
+  display: grid;
+  gap: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 48px;
+}
+.home-contact address span {
+  font-size: 12px;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 5px;
+}
+.home-contact address a:not(.map-link) {
+  font-size: 21px;
+}
+.home-contact address p {
+  font-size: 15px;
+  max-width: 330px;
+}
+.map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--brand);
+  margin-top: 10px;
+}
+@media (max-width: 1000px) {
+  .hero {
+    gap: 36px;
+  }
+  .hero h1 {
+    font-size: 46px;
+  }
+  .hero-actions {
+    gap: 18px;
+  }
+  .hero-phone {
+    font-size: 14px;
+  }
+  .home-about,
+  .home-contact {
+    gap: 48px;
+  }
+  .service-row {
+    gap: 18px;
+    grid-template-columns: 22px 26px 1fr 1.1fr 20px;
+  }
+  .service-row h3 {
+    font-size: 22px;
+  }
+}
+@media (max-width: 700px) {
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-block: 36px 52px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 8.9vw, 48px);
+    max-width: 520px;
+  }
+  .hero-description {
+    margin-block: 22px;
+    font-size: 16px;
+  }
+  .hero-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .hero-phone {
+    justify-content: center;
+  }
+  .hero-profile {
+    margin-top: 24px;
+  }
+  .hero-photo {
+    aspect-ratio: 1.65;
+    max-height: 330px;
+  }
+  .hero-photo img {
+    object-position: 75% 55%;
+  }
+  .home-section-heading {
+    display: block;
+    margin-bottom: 26px;
+  }
+  .home-section-heading > p {
+    margin-top: 18px;
+    font-size: 16px;
+  }
+  .home-services {
+    padding-bottom: 52px;
+  }
+  .service-row {
+    grid-template-columns: 23px 1fr 20px;
+    gap: 12px 16px;
+    padding-block: 24px;
+  }
+  .service-row > svg:first-of-type {
+    display: none;
+  }
+  .service-row h3 {
+    font-size: 24px;
+  }
+  .service-row p {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 15px;
+  }
+  .service-row > svg:last-child {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .services-more {
+    font-size: 14px;
+  }
+  .home-about,
+  .home-contact {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-block: 52px;
+  }
+  .home-about h2 br {
+    display: none;
+  }
+  .home-principles article {
+    padding-block: 18px;
+  }
+  .home-process {
+    padding-block: 48px;
+  }
+  .process-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px 22px;
+  }
+  .process-list h3 {
+    font-size: 16px;
+  }
+  .process-list p {
+    font-size: 14px;
+  }
+  .home-contact address {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+  }
+  .home-contact > div > .button {
+    width: 100%;
+  }
+}
+
+.keep-words {
+  white-space: nowrap;
+}

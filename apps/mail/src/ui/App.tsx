@@ -286,14 +286,6 @@ export function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-note">
-            <span className="decorative-line" />
-            <p>
-              Kết nối bằng
-              <br />
-              <em>sự tận tâm.</em>
-            </p>
-          </div>
           <div className="account">
             <span className="account-avatar">{session.email.slice(0, 1).toUpperCase()}</span>
             <div>
@@ -377,10 +369,6 @@ export function App() {
             onRetry={() => setReadRefresh((value) => value + 1)}
           />
         </div>
-        <footer className="workspace-footer">
-          <span>ICONIC LOGISTICS</span>
-          <span>Mỗi thông điệp, một kết nối.</span>
-        </footer>
       </div>
       <button
         className="mobile-compose button primary"

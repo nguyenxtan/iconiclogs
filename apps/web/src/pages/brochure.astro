@@ -13,7 +13,7 @@ const brochures = [
     description: 'Tài liệu giới thiệu ICONIC Logistics bằng tiếng Việt.',
     label: 'TIẾNG VIỆT',
     file: '/brochures/iconic-logistics-brochure-vi.pdf',
-    preview: '/brochures/iconic-logistics-brochure-vi-preview.webp',
+    preview: '/brochures/iconic-logistics-brochure-vi-cover.jpg',
   },
   {
     language: 'en',
@@ -22,7 +22,7 @@ const brochures = [
     description: 'Discover ICONIC Logistics in our English company brochure.',
     label: 'ENGLISH',
     file: '/brochures/iconic-logistics-brochure-en.pdf',
-    preview: '/brochures/iconic-logistics-brochure-en-preview.webp',
+    preview: '/brochures/iconic-logistics-brochure-en-cover.jpg',
   },
 ];
 ---
@@ -35,9 +35,9 @@ const brochures = [
   <main id="noi-dung" tabindex="-1">
     <PageIntro
       eyebrow="TÀI LIỆU DOANH NGHIỆP"
-      title="Khám phá"
-      accent="ICONIC Logistics."
-      description="Tìm hiểu doanh nghiệp và các dịch vụ logistics qua tài liệu giới thiệu của ICONIC. Hai ngôn ngữ, cùng một kết nối — thuận tiện để xem, lưu và chia sẻ."
+      title="Hồ sơ năng lực"
+      accent=""
+      description="Tìm hiểu doanh nghiệp và các dịch vụ logistics qua tài liệu giới thiệu của ICONIC. Chọn tài liệu tiếng Việt hoặc tiếng Anh để xem và tải về."
       breadcrumbs={[{ label: 'Brochure' }]}
     />
     <section class="container brochure-library" aria-label="Chọn ngôn ngữ brochure">
@@ -50,7 +50,7 @@ const brochures = [
                   <span>
                     {brochure.number} / {brochure.label}
                   </span>
-                  <span>PDF</span>
+                  <span>PDF · 8 trang · 7,0 MiB</span>
                 </>
               </div>
               <a class="brochure-preview" href={brochure.file} aria-label={`Xem ${brochure.title}`}>

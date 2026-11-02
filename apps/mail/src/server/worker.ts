@@ -2,9 +2,10 @@ import type { Settings } from './config';
 import { configuration } from './config';
 import { createApp, type MailServices } from './http/api';
 import { loginInput } from './core/validation';
-import { unauthorized, MailError, unavailable } from './core/errors';
+import { unauthorized, MailError, unavailable, SendPreparationError } from './core/errors';
 import { sha256 } from './core/session';
 import { ViettelProvider } from './providers/viettel';
+import { authenticatedCall } from './core/provider';
 import { SessionVault, MailboxCoordinator } from './storage/objects';
 export { SessionVault, MailboxCoordinator };
 
@@ -28,6 +29,12 @@ function services(env: Env): MailServices {
   };
   const provider = async (id: string) =>
     new ViettelProvider(await credentials(id), configuration(env).provider);
+  function withProvider<T>(id: string, run: (client: ViettelProvider) => Promise<T>): Promise<T> {
+    return authenticatedCall(
+      async () => run(await provider(id)),
+      () => vault(id).revoke(),
+    );
+  }
   return {
     async login(input, ip) {
       const config = configuration(env);
@@ -63,13 +70,26 @@ function services(env: Env): MailServices {
     },
     session: (id) => vault(id).info(),
     logout: (id) => vault(id).revoke(),
-    list: async (id, folder, page) => (await provider(id)).list(folder, page),
-    read: async (id, folder, messageId) => (await provider(id)).read(folder, messageId),
+    list: async (id, folder, page) => withProvider(id, (client) => client.list(folder, page)),
+    read: async (id, folder, messageId) =>
+      withProvider(id, (client) => client.read(folder, messageId)),
     attachment: async (id, folder, messageId, part) =>
-      (await provider(id)).attachment(folder, messageId, part),
+      withProvider(id, (client) => client.attachment(folder, messageId, part)),
     async send(id, draft, key) {
       const value = await credentials(id);
-      return env.MAILBOXES.getByName(await sha256(value.email)).send(value, draft, key);
+      const outcome = await env.MAILBOXES.getByName(await sha256(value.email)).send(
+        value,
+        draft,
+        key,
+      );
+      if (outcome.error === 'AUTH') {
+        await vault(id).revoke();
+        throw unauthorized();
+      }
+      if (outcome.error === 'PREPARATION') throw new SendPreparationError();
+      if (outcome.error === 'CONFLICT')
+        throw new MailError('SEND_CONFLICT', 409, 'Yêu cầu gửi đã được dùng cho nội dung khác.');
+      return outcome.result!;
     },
   };
 }

@@ -261,7 +261,7 @@ export function Composer({
             aria-label="Tiêu đề thư"
             className="composer-subject"
             placeholder="Tiêu đề thư"
-            maxLength={998}
+            maxLength={200}
             value={subject}
             disabled={locked}
             onChange={(event) => {
