@@ -5,7 +5,7 @@
   "main": "src/server/worker.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
   "limits": { "cpu_ms": 30000 },
   "assets": {
@@ -14,7 +14,14 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"],
   },
-  "vars": { "ENVIRONMENT": "production", "MAIL_ENABLED": "false", "MAIL_DOMAIN": "iconiclogs.com" },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "MAIL_ENABLED": "true",
+    "MAIL_DOMAIN": "iconiclogs.com",
+    "MAIL_HOST": "mail.iconiclogs.com",
+    "MAIL_ALLOWED_USERS": "info@iconiclogs.com,document@iconiclogs.com",
+    "SENT_MODE": "append",
+  },
   "durable_objects": {
     "bindings": [
       { "name": "SESSIONS", "class_name": "SessionVault" },

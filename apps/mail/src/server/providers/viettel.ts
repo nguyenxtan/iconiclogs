@@ -64,6 +64,8 @@ export class ViettelProvider implements MailProvider {
       maxLiteralSize: MAX_MIME,
       maxIdleTime: 0,
     });
+    // Socket errors can arrive outside the command Promise, including while closing.
+    const connectionError = new Promise<never>((_, reject) => client.on('error', reject));
     // A hard deadline closes the socket, rather than merely abandoning the Promise.
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
@@ -85,6 +87,7 @@ export class ViettelProvider implements MailProvider {
           return operation(client);
         })(),
         timeout,
+        connectionError,
       ]);
     } finally {
       clearTimeout(timer!);

@@ -108,10 +108,9 @@ Review tập trung vào file/MIME lớn, HTML độc hại, session expiry/revok
 đồng thời, SMTP unknown, Sent APPEND lỗi và hoạt động thực của Workers runtime.
 Local test không chứng minh SMTP, delivery hoặc quyền mailbox production.
 
-Deploy là giai đoạn riêng: cấu hình secrets do operator giữ, kiểm chứng provider
-trên cloud, xác nhận nhận/gửi/file/Sent, chốt hostname sau khi kiểm tra native
-client đang dùng `mail.iconiclogs.com`, rồi mới rollout. Không thay MX sang web
-Worker, mua server, deploy hoặc sửa hệ thống cũ trong công việc local này.
+Deploy dùng Worker mới độc lập với hệ thống cũ. Kiểm chứng provider trên cloud
+và xác nhận nhận/gửi/file/Sent bằng hộp thư thật. `mail.iconiclogs.com` đang phục vụ
+native mail client nên giữ tại Viettel; không thay hostname này hoặc MX sang Worker.
 
 ## Review và chỉnh sửa
 
@@ -133,7 +132,11 @@ tra không có dữ liệu hay nút demo; import tĩnh hiện được tree-shak
 ## Cấu hình Cloudflare — 03/11/2026
 
 Đã đăng nhập qua OAuth và deploy website lên Worker mới `iconiclogs-web`,
-có link xem trước `https://iconiclogs-web.tan-nx2377.workers.dev`. Worker Mail
-`iconiclogs-mail` đã upload, giữ private và live operations OFF; có secret
-SESSION_KEY sinh ngẫu nhiên, không lưu giá trị trong repo. Chưa cấu hình mailbox
-Viettel, đổi custom domain, DNS/MX hoặc thay các Worker cũ.
+có link xem trước `https://iconiclogs-web.tan-nx2377.workers.dev`. Mail ở
+`https://iconiclogs-mail.tan-nx2377.workers.dev`, bật cho `info@iconiclogs.com` và
+`document@iconiclogs.com`; group `fwd@iconiclogs.com` giữ tại Viettel.
+SESSION_KEY sinh ngẫu nhiên, không lưu giá trị trong repo; mật khẩu do người dùng
+nhập lúc đăng nhập. Cloudflare đã kiểm tra TLS/lời chào IMAP 993, SMTP 465 và MIME.
+Sent mặc định APPEND vào thư mục tự nhận diện; chưa nghiệm thu tài khoản thật,
+gửi/nhận, Sent hoặc file đính kèm. Đã sửa lỗi socket IMAP phát sự kiện ngoài Promise
+và thêm regression test. Custom domains, DNS/MX và các Worker cũ không thay đổi.

@@ -28,7 +28,7 @@ pnpm dev:mail
 
 Mail: `http://127.0.0.1:6070`; API Worker local ở `6071`. Nút **Xem bản mẫu** chỉ
 có trong dev, dùng dữ liệu giả và không gửi thư ra ngoài. Bản production không
-có demo. Mặc định Mail thật tắt; không có mật khẩu mặc định.
+có demo. Cấu hình local mẫu giữ Mail thật tắt; không có mật khẩu mặc định.
 
 ## Kiểm tra
 
@@ -56,25 +56,31 @@ SQLite Durable Objects local, kiểm tra phiên mã hóa, alarm xóa credential,
   hoặc mua gói trong công việc này; CPU/bộ nhớ với MIME lớn cần đo trên cloud.
 - `packages/brand`: logo, mark, font và token dùng chung.
 
-Trước khi bật Mail, operator xác nhận host Viettel, tài khoản được phép,
+Khi cấu hình Mail, xác nhận host Viettel, tài khoản được phép,
 thư mục Sent và hành vi tự lưu Sent. Tham khảo `.dev.vars.example` cho local;
 production cấu hình secrets riêng trên Cloudflare. `SESSION_KEY` phải là 32 byte
 ngẫu nhiên dạng Base64, không dùng key test. Không ghi credentials vào Git.
 
-Không có route/domain production được gắn sẵn. Tên Worker mới không trùng bản
-cũ. Deploy, DNS và việc bật `MAIL_ENABLED` là giai đoạn sau: phải xác nhận
-IMAP/SMTP/TLS từ cloud, nhận/gửi thật, bản Sent, file đính kèm và quyền hộp thư.
-Đặc biệt kiểm tra cách `mail.iconiclogs.com` đang phục vụ native mail client
-trước khi dùng làm web hostname. Không trỏ MX vào webmail Worker.
+Mail dùng URL Workers riêng. `mail.iconiclogs.com` vẫn trỏ tới Viettel để
+phục vụ các ứng dụng mail hiện có; không trỏ hostname này hay MX vào Worker.
+Gửi/nhận thật, bản Sent và file đính kèm cần kiểm thử bằng tài khoản của chủ hộp thư.
 
 ## Trạng thái Cloudflare — 03/11/2026
 
 Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã kiểm tra
 các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
 
-Worker `iconiclogs-mail` đã tải lên cùng hai Durable Object bindings và secret
-`SESSION_KEY`. Chưa có route, public URL hay version preview; `MAIL_ENABLED=false`.
-Chưa cấu hình credentials Viettel và chưa nghiệm thu gửi/nhận thật.
+Mail: **https://iconiclogs-mail.tan-nx2377.workers.dev**. `MAIL_ENABLED=true`,
+cho phép `info@iconiclogs.com` và `document@iconiclogs.com` đăng nhập bằng mật khẩu
+Viettel hiện có. `fwd@iconiclogs.com` là group do Viettel phân phối thư, không có
+đăng nhập riêng trong webmail. Mật khẩu chỉ được nhập trên trang đăng nhập,
+không lưu trong cấu hình deploy hoặc Git.
+
+Cloudflare đã xác minh TLS và lời chào IMAP 993/SMTP 465 đến `mail.iconiclogs.com`,
+cùng khả năng tạo/đọc MIME trong Worker. Hai Durable Object bindings và secret
+`SESSION_KEY` đã cấu hình. Sent đang dùng IMAP APPEND, tự tìm thư mục `\\Sent`;
+cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật. Chưa nghiệm thu
+đăng nhập, gửi/nhận, Sent và file đính kèm bằng hộp thư thật.
 
 `iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Website/mail cũ và DNS/MX
 chưa thay đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
