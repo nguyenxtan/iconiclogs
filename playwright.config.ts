@@ -6,9 +6,10 @@ export default defineConfig({
   use: { ...devices['Desktop Chrome'], trace: 'retain-on-failure' },
   webServer: [
     {
-      command: 'pnpm --filter @iconic/web dev --port 4325 --ignore-lock',
+      command:
+        'pnpm --filter @iconic/web build && pnpm --filter @iconic/mail exec wrangler dev --config ../web/wrangler.jsonc --local --port 4325',
       url: 'http://127.0.0.1:4325',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: 'pnpm --filter @iconic/mail dev',

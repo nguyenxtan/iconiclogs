@@ -31,6 +31,17 @@ for (const width of [1440, 390]) {
     ]) {
       const response = await page.goto('http://127.0.0.1:4325' + path);
       expect(response?.status()).toBe(200);
+      expect(response?.headers()['content-security-policy']).toContain("style-src 'self'");
+      await expect(page.locator('.page-heading')).toHaveCSS('position', 'relative');
+      await expect(page.locator('.page-heading')).toHaveCSS('overflow', 'hidden');
+      await expect(page.locator('style')).toHaveCount(0);
+      if (await page.locator('.page-heading-image').count()) {
+        await expect(page.locator('.page-heading-image')).toHaveCSS('position', 'absolute');
+        const heading = await page.locator('main h1').boundingBox();
+        const photo = await page.locator('.page-heading-image').boundingBox();
+        expect(heading!.y).toBeGreaterThanOrEqual(photo!.y);
+        expect(heading!.y + heading!.height).toBeLessThanOrEqual(photo!.y + photo!.height);
+      }
       await expect(page.locator('main h1')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
