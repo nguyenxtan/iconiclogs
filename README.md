@@ -67,5 +67,14 @@ IMAP/SMTP/TLS từ cloud, nhận/gửi thật, bản Sent, file đính kèm và 
 Đặc biệt kiểm tra cách `mail.iconiclogs.com` đang phục vụ native mail client
 trước khi dùng làm web hostname. Không trỏ MX vào webmail Worker.
 
-**Trạng thái:** code local và cấu hình build; chưa có nghiệm thu gửi/nhận thật
-cho bản mới và chưa deploy. Thiết kế, phạm vi và nguồn tài sản ở [docs/design.md](docs/design.md).
+## Trạng thái Cloudflare — 03/11/2026
+
+Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã kiểm tra
+các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
+
+Worker `iconiclogs-mail` đã tải lên cùng hai Durable Object bindings và secret
+`SESSION_KEY`. Chưa có route, public URL hay version preview; `MAIL_ENABLED=false`.
+Chưa cấu hình credentials Viettel và chưa nghiệm thu gửi/nhận thật.
+
+`iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Website/mail cũ và DNS/MX
+chưa thay đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).

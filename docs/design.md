@@ -121,3 +121,11 @@ Các chi tiết chưa mở rộng trong V1: nối toàn bộ References, tên hi
 link HTML có thể bấm, và chính sách xóa send ledger. Không tự xóa ledger theo
 gợi ý 7 ngày vì replay key cũ có thể gửi trùng. Bundle production đã được kiểm
 tra không có dữ liệu hay nút demo; import tĩnh hiện được tree-shake.
+
+## Cấu hình Cloudflare — 03/11/2026
+
+Đã đăng nhập qua OAuth và deploy website lên Worker mới `iconiclogs-web`,
+có link xem trước `https://iconiclogs-web.tan-nx2377.workers.dev`. Worker Mail
+`iconiclogs-mail` đã upload, giữ private và live operations OFF; có secret
+SESSION_KEY sinh ngẫu nhiên, không lưu giá trị trong repo. Chưa cấu hình mailbox
+Viettel, đổi custom domain, DNS/MX hoặc thay các Worker cũ.

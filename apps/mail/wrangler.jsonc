@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iconiclogs-mail",
+  "account_id": "ee2528cd2e60cd6a1e120d1dba703a3c",
   "main": "src/server/worker.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],

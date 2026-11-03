@@ -1,8 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "iconiclogs-web",
+  "account_id": "ee2528cd2e60cd6a1e120d1dba703a3c",
   "compatibility_date": "2026-11-02",
-  "workers_dev": false,
+  "workers_dev": true,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page",
