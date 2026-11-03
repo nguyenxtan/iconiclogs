@@ -37,6 +37,9 @@ const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
     <a class="header-contact" href={`tel:+84${company.phone.slice(1)}`}
       >{company.phoneDisplay} <Icon name="phone" size={16} /></a
     >
+    <a class="button button-brand header-quote" href="/contact"
+      >Nhận báo giá <Icon name="arrow" size={17} /></a
+    >
     <details class="mobile-menu">
       <summary aria-label="Mở hoặc đóng điều hướng"
         ><span>Menu</span><span class="menu-lines" aria-hidden="true"></span></summary

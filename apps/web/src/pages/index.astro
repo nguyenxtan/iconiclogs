@@ -2,139 +2,122 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Hero from '../components/Hero.astro';
+import ServiceGrid from '../components/ServiceGrid.astro';
 import Icon from '../components/Icon.astro';
-import { company, services, process } from '../content/company';
+import { company, process } from '../content/company';
 import '../styles/home.css';
 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`;
 ---
 
-<BaseLayout>
+<BaseLayout title="ICONIC Logistics | Vận tải & giao nhận xuất nhập khẩu">
   <Header />
   <main id="noi-dung" tabindex="-1">
-    <section class="hero container" aria-labelledby="hero-title">
-      <div class="hero-copy">
-        <p class="eyebrow">ICONIC LOGISTICS · VIỆT NAM</p>
-        <h1 id="hero-title">
-          Kết nối hành trình.<br /><em>Vững bước <span class="keep-words">giao thương.</span></em>
-        </h1>
-        <p class="hero-description">
-          Vận tải biển, hàng không, đường bộ, thủ tục hải quan và kho bãi. Một đầu mối phối hợp, từ
-          yêu cầu ban đầu đến giao nhận.
-        </p>
-        <div class="hero-actions">
-          <a class="button button-brand" href="/contact"
-            >Liên hệ báo giá <Icon name="arrow" size={19} /></a
-          ><a class="hero-phone" href={`tel:+84${company.phone.slice(1)}`}
-            ><Icon name="phone" size={17} />{company.phoneDisplay}</a
-          >
-        </div>
-        <a class="hero-profile" href="/brochure"
-          >Hồ sơ năng lực Việt / Anh <Icon name="northeast" size={16} /></a
-        >
-      </div>
-      <figure class="hero-photo">
-        <img
-          src="/visuals/iconic-port-hero-v2.webp"
-          alt="Minh họa tàu container hướng về cảng biển"
-          width="1915"
-          height="821"
-          fetchpriority="high"
-        />
-      </figure>
-    </section>
-    <section class="home-services container" id="dich-vu" aria-labelledby="services-title">
-      <div class="home-section-heading">
+    <Hero />
+    <section
+      class="photo-services section-space container"
+      id="dich-vu"
+      aria-labelledby="services-title"
+    >
+      <div class="section-top">
         <div>
-          <p class="eyebrow">CHÚNG TÔI LÀM GÌ</p><h2 id="services-title">Dịch vụ logistics</h2>
-        </div><p>Lựa chọn một dịch vụ hoặc phối hợp nhiều chặng theo yêu cầu của lô hàng.</p>
+          <p class="eyebrow">DỊCH VỤ CỦA ICONIC</p><h2 id="services-title">
+            Giải pháp cho từng<br />chặng vận chuyển.
+          </h2>
+        </div><p>
+          Từ vận tải quốc tế đến giao nhận nội địa, cùng lựa chọn dịch vụ phù hợp với hàng hóa và kế
+          hoạch kinh doanh.
+        </p>
       </div>
-      <div class="services-list">
+      <ServiceGrid />
+      <p class="image-note">Hình ảnh minh họa các hoạt động logistics.</p>
+    </section>
+    <section class="company-band" aria-labelledby="company-title">
+      <div class="container company-band-inner">
+        <div class="company-intro">
+          <p class="eyebrow">VỀ ICONIC LOGISTICS</p><h2 id="company-title">
+            Hiểu yêu cầu.<br />Rõ trách nhiệm.
+          </h2><p>
+            Chúng tôi cùng doanh nghiệp làm rõ phương án vận chuyển, thống nhất phạm vi và phối hợp
+            các đầu mối liên quan. Mỗi lô hàng được theo sát bằng thông tin cụ thể.
+          </p><a class="text-link" href="/about"
+            >Tìm hiểu về ICONIC <Icon name="arrow" size={20} /></a
+          >
+        </div><div class="company-principles">
+          <article>
+            <Icon name="check" size={23} /><div>
+              <h3>Bắt đầu từ nhu cầu thực tế</h3><p>
+                Loại hàng, tuyến và thời gian là cơ sở của phương án.
+              </p>
+            </div>
+          </article><article>
+            <Icon name="check" size={23} /><div>
+              <h3>Thống nhất trước khi triển khai</h3><p>
+                Phạm vi, chi phí và trách nhiệm được trao đổi rõ ràng.
+              </p>
+            </div>
+          </article><article>
+            <Icon name="check" size={23} /><div>
+              <h3>Chủ động trong quá trình thực hiện</h3><p>
+                Theo sát tiến độ và trao đổi khi có thay đổi.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="section-space container process-section"
+      id="cach-phoi-hop"
+      aria-labelledby="process-title"
+    >
+      <div class="section-top">
+        <div>
+          <p class="eyebrow">CÁCH PHỐI HỢP</p><h2 id="process-title">
+            Một quy trình rõ ràng,<br />từ yêu cầu đến giao nhận.
+          </h2>
+        </div><p>
+          Trao đổi đúng thông tin, thống nhất từng bước và cùng theo dõi quá trình thực hiện.
+        </p>
+      </div><ol class="process-timeline">
         {
-          services.map((service) => (
-            <a class="service-row" href={`/services/${service.slug}`}>
+          process.map((step, index) => (
+            <li>
               <>
-                <span class="service-number">{service.number}</span>
-                <Icon name={service.icon} size={26} />
-                <h3>{service.title}</h3>
-                <p>{service.description}</p>
-                <Icon name="northeast" size={21} />
+                <span class="step-number">{index + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
               </>
-            </a>
+            </li>
           ))
         }
-      </div>
-      <a class="text-link services-more" href="/services"
-        >Xem phạm vi và thông tin cần chuẩn bị <Icon name="arrow" size={18} /></a
-      >
+      </ol>
     </section>
-    <section class="home-about container" id="ve-iconic" aria-labelledby="about-title">
-      <div>
-        <p class="eyebrow">VỀ ICONIC</p><h2 id="about-title">Hiểu yêu cầu. Rõ trách nhiệm.</h2><p>
-          ICONIC Logistics cùng doanh nghiệp xây dựng phương án vận chuyển và phối hợp các đầu mối
-          liên quan. Hàng hóa, lịch trình và chứng từ được làm rõ trước khi triển khai.
-        </p><a class="text-link" href="/about"
-          >Tìm hiểu về chúng tôi <Icon name="arrow" size={18} /></a
-        >
-      </div>
-      <div class="home-principles">
-        <article>
-          <span>01</span><div>
-            <h3>Đúng nhu cầu</h3><p>Phương án dựa trên đặc điểm hàng hóa và kế hoạch thực tế.</p>
-          </div>
-        </article><article>
-          <span>02</span><div>
-            <h3>Minh bạch thông tin</h3><p>Thống nhất phạm vi, chi phí và các bước phối hợp.</p>
-          </div>
-        </article><article>
-          <span>03</span><div>
-            <h3>Theo sát thực hiện</h3><p>Chủ động cập nhật tiến độ và trao đổi khi có thay đổi.</p>
-          </div>
-        </article>
-      </div>
-    </section>
-    <section class="home-process" id="cach-phoi-hop" aria-labelledby="process-title">
-      <div class="container">
-        <div class="home-section-heading">
+    <section class="home-contact" id="lien-he" aria-labelledby="contact-title">
+      <div class="container home-contact-inner">
+        <div>
+          <p class="eyebrow">TRAO ĐỔI CÙNG ICONIC</p><h2 id="contact-title">
+            Bạn cần<br />vận chuyển gì?
+          </h2><p>
+            Chia sẻ loại hàng, điểm đi – đến và thời gian dự kiến. Chúng tôi sẽ cùng bạn làm rõ
+            phương án.
+          </p><a class="button button-brand" href={`mailto:${company.email}`}
+            >Gửi yêu cầu vận chuyển <Icon name="arrow" size={20} /></a
+          >
+        </div><address>
           <div>
-            <p class="eyebrow">CÁCH LÀM VIỆC</p><h2 id="process-title">Từng bước rõ ràng</h2>
-          </div><p>
-            Một quy trình trao đổi thống nhất, từ tiếp nhận yêu cầu đến hoàn tất giao nhận.
-          </p>
-        </div><ol class="process-list">
-          {
-            process.map((step, index) => (
-              <li>
-                <>
-                  <span class="process-number">0{index + 1}</span>
-                  <h3>{step.title}</h3>
-                  <p>{step.description}</p>
-                </>
-              </li>
-            ))
-          }
-        </ol>
+            <span>Gọi cho chúng tôi</span><a href={`tel:+84${company.phone.slice(1)}`}
+              >{company.phoneDisplay}</a
+            >
+          </div><div>
+            <span>Email</span><a href={`mailto:${company.email}`}>{company.email}</a>
+          </div><div>
+            <span>Văn phòng</span><p>{company.address}</p><a class="map-link" href={mapUrl}
+              >Xem trên bản đồ <Icon name="northeast" size={16} /></a
+            >
+          </div>
+        </address>
       </div>
-    </section>
-    <section class="home-contact container" id="lien-he" aria-labelledby="contact-title">
-      <div>
-        <p class="eyebrow">TRAO ĐỔI CÙNG ICONIC</p><h2 id="contact-title">
-          Bạn cần vận chuyển gì?
-        </h2><p>
-          Gửi loại hàng, điểm đi – đến và thời gian dự kiến. Chúng tôi sẽ cùng bạn làm rõ phương án.
-        </p><a class="button button-brand" href={`mailto:${company.email}`}
-          >Gửi yêu cầu vận chuyển <Icon name="northeast" size={18} /></a
-        >
-      </div><address>
-        <div><span>Email</span><a href={`mailto:${company.email}`}>{company.email}</a></div><div>
-          <span>Điện thoại</span><a href={`tel:+84${company.phone.slice(1)}`}
-            >{company.phoneDisplay}</a
-          >
-        </div><div>
-          <span>Văn phòng</span><p>{company.address}</p><a class="map-link" href={mapUrl}
-            >Xem bản đồ <Icon name="northeast" size={15} /></a
-          >
-        </div>
-      </address>
     </section>
   </main>
   <Footer />

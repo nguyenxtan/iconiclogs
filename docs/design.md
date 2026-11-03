@@ -11,12 +11,20 @@ quy trình trial/staging/recovery của repo cũ sang sản phẩm mới.
 
 ## Nhận diện
 
-Chủ dự án chọn hướng A sáng, tinh tế thay cho phương án B tối, công nghiệp.
-Nền ivory `#FAF7F1`, bề mặt trắng, chữ `#201D1A`, đỏ ICONIC `#801C18`.
-Màu đồng `#B47750` dành cho trang trí; chữ nhỏ dùng màu đủ tương phản.
-Be Vietnam Pro cho nội dung/UI, Source Serif 4 cho tiêu đề editorial.
-Giữ logo gốc, bỏ khung trắng dán lên ảnh; mark dùng cho favicon/sidebar gọn.
-Sidebar desktop thu gọn được; mobile giữ điều hướng riêng dễ dùng.
+Chủ dự án yêu cầu làm mới sau khi xem hai bản trước. Hướng hiện tại lấy hình ảnh
+làm chủ đạo: nền trắng, xám mát `#F3F4F2`, đỏ ICONIC `#801C18`, chữ Be Vietnam
+Pro; website không dùng tiêu đề serif hoặc nền beige. Logo và mark gốc giữ nguyên.
+
+Hero là ảnh cảng lớn có lớp phủ và chữ trắng; desktop/mobile có crop riêng.
+Dịch vụ dùng lưới ảnh bất đối xứng; hải quan là ô đỏ. Giới thiệu dùng dải đỏ,
+quy trình là timeline và liên hệ là khối xám. Trang con có hero ảnh theo dịch vụ,
+phạm vi rõ ràng và panel thông tin cần chuẩn bị. Hải quan không dùng ảnh gán ghép.
+
+Claude chỉ tư vấn hướng thiết kế và prompt; người triển khai tự làm code và
+ảnh. Bộ bốn ảnh mới tạo bằng imagegen có prompt và đường dẫn ở
+`apps/web/src/content/image-prompts.json`. Ảnh WebP được lưu trong
+`apps/web/public/visuals/photographic`; ảnh là minh họa, không khẳng định quyền
+sở hữu phương tiện hoặc cơ sở của ICONIC.
 
 ## Website
 

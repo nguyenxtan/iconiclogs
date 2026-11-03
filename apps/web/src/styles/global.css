@@ -1,9 +1,14 @@
 @import './pages.css';
 :root {
-  --content-width: 1200px;
+  --content-width: 1240px;
   --gutter: clamp(20px, 4vw, 64px);
   --copper-text: #8a5537;
-  --body-ink: #3a3430;
+  --body-ink: #55524e;
+  --canvas: #ffffff;
+  --surface: #f3f4f2;
+  --ink: #1c1b1a;
+  --line: #e3e6e5;
+  --font-editorial: var(--font-sans);
 }
 html {
   scroll-behavior: smooth;
@@ -30,9 +35,9 @@ figure {
 }
 h1,
 h2 {
-  font-family: var(--font-editorial);
-  font-weight: 400;
-  line-height: 1.12;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.17;
   letter-spacing: -0.035em;
   text-wrap: balance;
 }
@@ -40,7 +45,7 @@ h1 {
   font-size: clamp(36px, 4vw, 54px);
 }
 h2 {
-  font-size: clamp(28px, 3vw, 38px);
+  font-size: clamp(28px, 3vw, 40px);
 }
 h3 {
   font-size: 20px;
@@ -83,7 +88,7 @@ main {
   transform: none;
 }
 .eyebrow {
-  color: var(--copper-text);
+  color: var(--brand);
   font: 600 12px/1.5 var(--font-sans);
   letter-spacing: 0.12em;
   margin-bottom: 16px;
@@ -125,8 +130,9 @@ main {
 .site-header {
   border-bottom: 1px solid var(--line);
   background: var(--canvas);
-  position: relative;
-  z-index: 20;
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 .header-inner {
   min-height: 76px;
@@ -142,12 +148,12 @@ main {
 .desktop-nav {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 23px;
 }
 .desktop-nav a {
   font-size: 14px;
   font-weight: 500;
-  padding-block: 23px;
+  padding-block: 25px;
   border-bottom: 2px solid transparent;
 }
 .desktop-nav a:hover,
@@ -230,7 +236,7 @@ main {
     display: none;
   }
 }
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .header-inner {
     min-height: 64px;
   }
@@ -279,7 +285,7 @@ main {
   .footer-top {
     align-items: start;
     flex-direction: column;
-    gap: 26px;
+    gap: 23px;
   }
   .footer-top nav {
     gap: 14px 24px;
@@ -291,5 +297,33 @@ main {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+.header-quote {
+  min-height: 42px;
+  padding: 10px 16px;
+  font-size: 13px;
+  gap: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 1190px) {
+  .header-contact {
+    display: none;
+  }
+  .desktop-nav {
+    gap: 20px;
+  }
+}
+@media (max-width: 900px) {
+  .desktop-nav,
+  .header-quote {
+    display: none;
+  }
+  .mobile-menu {
+    display: block;
+  }
+  .header-inner {
+    min-height: 64px;
   }
 }

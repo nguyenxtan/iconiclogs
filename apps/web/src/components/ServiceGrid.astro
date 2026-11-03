@@ -1,0 +1,298 @@
+---
+import { services } from '../content/company';
+import { imagery, serviceImages } from '../content/imagery';
+import Icon from './Icon.astro';
+interface Props {
+  exclude?: string;
+  compact?: boolean;
+}
+const { exclude, compact = false } = Astro.props;
+const items = services.filter((item) => item.slug !== exclude);
+---
+
+<div class:list={['service-grid', { 'service-grid-compact': compact }]}>
+  {
+    items.map((service, index) => {
+      const key = serviceImages[service.slug];
+      const photo = key ? imagery[key] : undefined;
+      return (
+        <a
+          class:list={[
+            'service-card',
+            {
+              'service-card-wide': !compact && index === 0,
+              'service-card-air': !compact && index === 1,
+              'service-card-customs': !photo,
+            },
+          ]}
+          href={`/services/${service.slug}`}
+        >
+          {photo ? (
+            <figure>
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                width={photo.width}
+                height={photo.height}
+                loading="lazy"
+                class:list={{ 'port-crop': key === 'port' }}
+              />
+              <span class="photo-tag">{service.title}</span>
+            </figure>
+          ) : (
+            <div class="customs-visual">
+              <Icon name="document" size={66} />
+              <span>THỦ TỤC XUẤT NHẬP KHẨU</span>
+              <strong>
+                Rõ hồ sơ.
+                <br />
+                Chủ động thông quan.
+              </strong>
+            </div>
+          )}
+          <div class="service-card-body">
+            <>
+              <div class="service-title-line">
+                <>
+                  <h3>{service.title}</h3>
+                  <Icon name="northeast" size={20} />
+                </>
+              </div>
+              <p>{service.description}</p>
+              <span class="service-read">
+                Tìm hiểu dịch vụ <Icon name="arrow" size={16} />
+              </span>
+            </>
+          </div>
+        </a>
+      );
+    })
+  }
+</div>
+<style>
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 36px 28px;
+  }
+  .service-card {
+    grid-column: span 4;
+    min-width: 0;
+    display: block;
+  }
+  .service-card-wide {
+    grid-column: span 7;
+  }
+  .service-card-air {
+    grid-column: span 5;
+  }
+  figure {
+    width: 100%;
+    position: relative;
+    height: 245px;
+    overflow: hidden;
+    background: #e6ecef;
+  }
+  .service-card-wide figure,
+  .service-card-air figure {
+    height: 320px;
+  }
+  figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.45s;
+  }
+  figure .port-crop {
+    object-position: 78% center;
+  }
+  .service-card:hover figure img {
+    transform: scale(1.035);
+  }
+  .photo-tag {
+    position: absolute;
+    bottom: 18px;
+    left: 18px;
+    background: white;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #252526;
+  }
+  .service-card-body {
+    padding: 22px 0 0;
+  }
+  .service-title-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+  }
+  .service-title-line h3 {
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .service-title-line svg {
+    color: var(--brand);
+    flex: none;
+  }
+  .service-card-body p {
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 560px;
+  }
+  .service-read {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .customs-visual {
+    min-height: 245px;
+    background: var(--brand);
+    color: white;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+    position: relative;
+    overflow: hidden;
+  }
+  .customs-visual > svg {
+    position: absolute;
+    top: 24px;
+    right: 22px;
+    opacity: 0.28;
+    width: 72px;
+    height: 72px;
+  }
+  .customs-visual span {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .customs-visual strong {
+    font-size: 27px;
+    line-height: 1.25;
+    font-weight: 600;
+    position: relative;
+  }
+  .service-card-customs .service-title-line h3 {
+    color: var(--brand);
+  }
+  .service-grid-compact {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+  }
+  .service-grid-compact .service-card {
+    grid-column: auto;
+  }
+  .service-grid-compact figure,
+  .service-grid-compact .customs-visual {
+    height: 190px;
+    min-height: 190px;
+  }
+  .service-grid-compact .customs-visual {
+    padding: 20px;
+  }
+  .service-grid-compact .customs-visual strong {
+    font-size: 22px;
+  }
+  .service-grid-compact .customs-visual span {
+    font-size: 12px;
+  }
+  .service-grid-compact h3 {
+    font-size: 18px;
+  }
+  .service-grid-compact .service-card-body p,
+  .service-grid-compact .service-read {
+    display: none;
+  }
+  @media (max-width: 900px) {
+    .service-grid {
+      gap: 30px 20px;
+    }
+    figure,
+    .customs-visual {
+      height: 210px;
+      min-height: 210px;
+    }
+    .service-card-wide figure,
+    .service-card-air figure {
+      height: 270px;
+    }
+    .service-title-line h3 {
+      font-size: 20px;
+    }
+    .customs-visual {
+      padding: 22px;
+    }
+    .customs-visual strong {
+      font-size: 23px;
+    }
+    .service-grid-compact {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 650px) {
+    .service-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .service-card,
+    .service-card-wide,
+    .service-card-air {
+      grid-column: auto;
+    }
+    .service-card figure,
+    .service-card-wide figure,
+    .service-card-air figure {
+      height: auto;
+      aspect-ratio: 1.45;
+    }
+    .customs-visual {
+      min-height: 230px;
+    }
+    .customs-visual strong {
+      font-size: 28px;
+    }
+    .service-card-body {
+      padding-top: 18px;
+    }
+    .service-card-body p {
+      font-size: 15px;
+    }
+    .service-grid-compact {
+      grid-template-columns: 1fr 1fr;
+      gap: 26px 16px;
+    }
+    .service-grid-compact figure,
+    .service-grid-compact .customs-visual {
+      height: 140px;
+      min-height: 140px;
+    }
+    .service-grid-compact .customs-visual {
+      padding: 14px;
+    }
+    .service-grid-compact .customs-visual span {
+      display: none;
+    }
+    .service-grid-compact .customs-visual strong {
+      font-size: 17px;
+    }
+    .service-grid-compact h3 {
+      font-size: 16px;
+    }
+    .service-grid-compact .service-title-line > svg {
+      display: none;
+    }
+  }
+</style>

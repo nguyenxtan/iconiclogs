@@ -4,104 +4,80 @@ import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import PageIntro from '../../components/PageIntro.astro';
 import ContactCTA from '../../components/ContactCTA.astro';
+import ServiceGrid from '../../components/ServiceGrid.astro';
 import Icon from '../../components/Icon.astro';
 import { company, services } from '../../content/company';
 import { serviceDetails } from '../../content/service-details';
+import { serviceImages } from '../../content/imagery';
 export function getStaticPaths() {
   return services.map((service) => ({ params: { slug: service.slug }, props: { service } }));
 }
 const { service } = Astro.props;
 const detail = serviceDetails[service.slug];
-const related = services.filter((item) => item.slug !== service.slug);
 ---
 
 <BaseLayout
   title={`${service.title} | ICONIC Logistics`}
-  description={`${service.title} cùng ICONIC Logistics. ${service.description} Tìm hiểu phạm vi phối hợp và thông tin cần chuẩn bị.`}
+  description={`${service.title} cùng ICONIC Logistics. ${service.description}`}
 >
-  <Header />
-  <main id="noi-dung" tabindex="-1">
+  <Header /><main id="noi-dung" tabindex="-1">
     <PageIntro
-      eyebrow={`${service.number} / ${service.title.toUpperCase()}`}
+      image={serviceImages[service.slug]}
+      red={service.slug === 'customs'}
+      eyebrow="DỊCH VỤ LOGISTICS"
       title={service.title}
-      accent=""
       description={detail.introduction}
       breadcrumbs={[{ label: 'Dịch vụ', href: '/services' }, { label: service.title }]}
     />
-    <section class="container page-section editorial-split" aria-labelledby="scope-title">
-      <div>
-        <p class="eyebrow">PHẠM VI PHỐI HỢP</p><h2 id="scope-title">Phạm vi dịch vụ</h2><p
-          class="section-intro"
+    <section class="container service-detail-content">
+      <div class="service-scope">
+        <p class="eyebrow">CHÚNG TÔI PHỐI HỢP NHỮNG GÌ</p><h2>Phạm vi dịch vụ</h2><p
+          class="scope-introduction"
         >
-          Phạm vi thực hiện được trao đổi và thống nhất theo đặc điểm của từng lô hàng.
-        </p><a
-          class="text-link"
-          href={`mailto:${company.email}?subject=${encodeURIComponent(`Yêu cầu tư vấn ${service.title.toLowerCase()}`)}`}
-          >Trao đổi về dịch vụ <Icon name="northeast" size={20} /></a
-        >
-      </div><ol class="editorial-list">
-        {
-          detail.scope.map((item, index) => (
-            <li>
+          Phạm vi thực hiện được thống nhất theo hàng hóa, tuyến và nhu cầu cụ thể của doanh nghiệp.
+        </p>{
+          detail.scope.map((item) => (
+            <article>
               <>
-                <span>0{index + 1}</span>
-                <div>
-                  <>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                  </>
-                </div>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
               </>
-            </li>
+            </article>
           ))
         }
-      </ol>
+      </div><aside class="service-preparation" aria-labelledby="prepare-title">
+        <span class="prepare-icon"><Icon name="document" size={28} /></span><h2 id="prepare-title">
+          Thông tin cần chuẩn bị
+        </h2><p>Gửi thông tin bạn hiện có. Chúng tôi sẽ cùng làm rõ các nội dung cần bổ sung.</p><ul
+        >
+          {
+            detail.prepare.map((item) => (
+              <li>
+                <>
+                  <Icon name="check" size={18} />
+                  <span>{item}</span>
+                </>
+              </li>
+            ))
+          }
+        </ul><p class="service-note">{detail.note}</p><a
+          class="button button-brand"
+          href={`mailto:${company.email}?subject=${encodeURIComponent(`Yêu cầu tư vấn ${service.title.toLowerCase()}`)}`}
+          >Trao đổi về dịch vụ <Icon name="arrow" size={18} /></a
+        >
+      </aside>
     </section>
-    <section class="detail-preparation">
-      <div class="container editorial-split">
-        <div>
-          <p class="eyebrow">THÔNG TIN CẦN CHUẨN BỊ</p><h2>Thông tin cần chuẩn bị</h2><p
-            class="section-intro"
-          >
-            Gửi thông tin bạn hiện có. Chúng tôi sẽ cùng làm rõ những nội dung cần bổ sung cho
-            phương án cụ thể.
-          </p>
-        </div><div>
-          <ul class="checklist">
-            {
-              detail.prepare.map((item) => (
-                <li>
-                  <span aria-hidden="true">+</span>
-                  {item}
-                </li>
-              ))
-            }
-          </ul><p class="service-note">{detail.note}</p>
-        </div>
-      </div>
-    </section>
-    <section class="container page-section" aria-labelledby="related-title">
+    <section class="container related-section" aria-labelledby="related-title">
       <div class="related-heading">
         <div>
-          <p class="eyebrow">DỊCH VỤ KHÁC</p><h2 id="related-title">Các dịch vụ liên quan.</h2>
+          <p class="eyebrow">CÁC CHẶNG LIÊN QUAN</p><h2 id="related-title">
+            Phối hợp thêm dịch vụ
+          </h2>
         </div><a class="text-link" href="/services"
-          >Tất cả dịch vụ <Icon name="arrow" size={20} /></a
+          >Tất cả dịch vụ <Icon name="arrow" size={18} /></a
         >
-      </div><div class="related-services">
-        {
-          related.map((item) => (
-            <a href={`/services/${item.slug}`}>
-              <>
-                <Icon name={item.icon} size={28} />
-                <span>{item.title}</span>
-                <Icon name="northeast" size={20} />
-              </>
-            </a>
-          ))
-        }
-      </div>
+      </div><ServiceGrid exclude={service.slug} compact />
     </section>
-    <ContactCTA title="Cùng làm rõ phương án của bạn." />
-  </main>
-  <Footer />
+    <ContactCTA />
+  </main><Footer />
 </BaseLayout>

@@ -6,6 +6,15 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('http://127.0.0.1:4325');
     await expect(page.locator('main h1')).toBeVisible();
+    const heroImage = page.locator('.photo-hero picture img');
+    await expect(heroImage).toBeVisible();
+    await expect
+      .poll(() => heroImage.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+    expect(await heroImage.evaluate((image) => (image as HTMLImageElement).currentSrc)).toContain(
+      width < 700 ? '/port-mobile.webp' : '/port.webp',
+    );
+    await expect(page.locator('.photo-hero .button-brand')).toBeInViewport();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
