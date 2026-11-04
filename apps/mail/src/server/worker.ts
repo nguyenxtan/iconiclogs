@@ -2,7 +2,13 @@ import type { Settings } from './config';
 import { configuration } from './config';
 import { createApp, type MailServices } from './http/api';
 import { loginInput } from './core/validation';
-import { unauthorized, MailError, unavailable, SendPreparationError } from './core/errors';
+import {
+  unauthorized,
+  MailError,
+  unavailable,
+  SendPreparationError,
+  loginFailure,
+} from './core/errors';
 import { sha256 } from './core/session';
 import { ViettelProvider } from './providers/viettel';
 import { authenticatedCall } from './core/provider';
@@ -37,11 +43,13 @@ function services(env: Env): MailServices {
   }
   return {
     async login(input, ip) {
+      console.info('iconic-login-stage', 'rate-ip');
       const config = configuration(env);
       // Consume before validating identity so disallowed accounts cannot bypass the IP limiter.
       if (!(await env.SESSIONS.getByName('rate:' + (await sha256(ip))).attempt()))
         throw new MailError('RATE_LIMIT', 429, 'Đã thử đăng nhập nhiều lần. Vui lòng đợi 15 phút.');
       const value = loginInput(input, config.allowed);
+      console.info('iconic-login-stage', 'rate-user');
       if (!(await env.SESSIONS.getByName('account:' + (await sha256(value.email))).attempt()))
         throw new MailError(
           'RATE_LIMIT',
@@ -55,18 +63,20 @@ function services(env: Env): MailServices {
         throw unavailable();
       }
       try {
+        console.info('iconic-login-stage', 'provider-start');
         await new ViettelProvider(value, config.provider).authenticate();
-      } catch {
-        throw new MailError(
-          'LOGIN_FAILED',
-          401,
-          'Không thể đăng nhập. Kiểm tra tài khoản, mật khẩu hoặc thử lại sau.',
-        );
+        console.info('iconic-login-stage', 'provider-ok');
+      } catch (error) {
+        console.info('iconic-login-stage', 'provider-error');
+        throw loginFailure(error);
       }
       const id = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
         byte.toString(16).padStart(2, '0'),
       ).join('');
-      return { id, session: await vault(id).create(value, id) };
+      console.info('iconic-login-stage', 'session-start');
+      const session = await vault(id).create(value, id);
+      console.info('iconic-login-stage', 'complete');
+      return { id, session };
     },
     session: (id) => vault(id).info(),
     logout: (id) => vault(id).revoke(),

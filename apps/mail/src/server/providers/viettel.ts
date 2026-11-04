@@ -10,7 +10,7 @@ import type {
 import type { MailProvider } from '../core/provider';
 import type { Credentials } from '../core/session';
 import type { ProviderConfig } from '../config';
-import { MailError } from '../core/errors';
+import { MailError, loginFailure } from '../core/errors';
 import { MAX_MIME, messageKey } from '../core/validation';
 import { composeMessage, ensureMimeSize, messageBody, parseMessage } from './mime';
 import { deliverMessage } from './smtp';
@@ -48,6 +48,7 @@ export class ViettelProvider implements MailProvider {
   ) {}
 
   async connection<T>(operation: (client: ImapFlow) => Promise<T>): Promise<T> {
+    const startedAt = Date.now();
     const client = new ImapFlow({
       host: this.config.host,
       port: 993,
@@ -64,13 +65,23 @@ export class ViettelProvider implements MailProvider {
       maxLiteralSize: MAX_MIME,
       maxIdleTime: 0,
     });
+    let authenticated = false;
+    const captureAuthentication = () => {
+      authenticated ||= !!client.authenticated;
+    };
+    client.on('response', captureAuthentication);
     // Socket errors can arrive outside the command Promise, including while closing.
-    const connectionError = new Promise<never>((_, reject) => client.on('error', reject));
+    const connectionError = new Promise<never>((_, reject) =>
+      client.on('error', (error) => {
+        captureAuthentication();
+        reject(error);
+      }),
+    );
     // A hard deadline closes the socket, rather than merely abandoning the Promise.
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
-        client.close();
+        captureAuthentication();
         reject(
           new MailError(
             'PROVIDER_TIMEOUT',
@@ -78,6 +89,7 @@ export class ViettelProvider implements MailProvider {
             'Kết nối mail quá thời gian. Vui lòng thử lại sau.',
           ),
         );
+        client.close();
       }, 25000);
     });
     try {
@@ -89,6 +101,14 @@ export class ViettelProvider implements MailProvider {
         timeout,
         connectionError,
       ]);
+    } catch (error) {
+      console.warn('mail-imap-error', {
+        code: loginFailure(error).code,
+        authenticated: authenticated || !!client.authenticated,
+        usable: client.usable === true,
+        elapsedMs: Date.now() - startedAt,
+      });
+      throw error;
     } finally {
       clearTimeout(timer!);
       // No long-lived sockets or background provider work across Worker requests.

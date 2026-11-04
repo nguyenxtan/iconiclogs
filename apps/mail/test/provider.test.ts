@@ -4,7 +4,63 @@ import { ImapFlow } from 'imapflow';
 import { ViettelProvider } from '../src/server/providers/viettel';
 import { authenticatedCall } from '../src/server/core/provider';
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+it('preserves authenticated state when a deadline closes a stalled post-auth connection', async () => {
+  vi.useFakeTimers();
+  vi.spyOn(ImapFlow.prototype, 'connect').mockImplementation(function (this: ImapFlow) {
+    this.authenticated = true;
+    return new Promise(() => undefined);
+  });
+  vi.spyOn(ImapFlow.prototype, 'close').mockImplementation(function (this: ImapFlow) {
+    this.authenticated = false;
+  });
+  const report = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const provider = new ViettelProvider(
+    { email: 'fixture@iconiclogs.com', password: 'synthetic' },
+    { host: 'mail.example.test', sentMode: 'append' },
+  );
+  const result = expect(provider.authenticate()).rejects.toMatchObject({
+    code: 'PROVIDER_TIMEOUT',
+    status: 504,
+  });
+  await vi.advanceTimersByTimeAsync(25000);
+  await result;
+  expect(report).toHaveBeenCalledWith(
+    'mail-imap-error',
+    expect.objectContaining({ authenticated: true, code: 'PROVIDER_TIMEOUT', elapsedMs: 25000 }),
+  );
+});
+it('records only safe connection metadata before closing an authenticated failed connection', async () => {
+  const failure = Object.assign(new Error('private password and protocol transcript'), {
+    code: 'ECONNRESET',
+  });
+  vi.spyOn(ImapFlow.prototype, 'connect').mockImplementation(async function (this: ImapFlow) {
+    this.authenticated = 'fixture@iconiclogs.com';
+    throw failure;
+  });
+  vi.spyOn(ImapFlow.prototype, 'close').mockImplementation(() => undefined);
+  const report = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const provider = new ViettelProvider(
+    { email: 'fixture@iconiclogs.com', password: 'synthetic-private-password' },
+    { host: 'mail.example.test', sentMode: 'append' },
+  );
+  await expect(provider.authenticate()).rejects.toBe(failure);
+  expect(report).toHaveBeenCalledWith(
+    'mail-imap-error',
+    expect.objectContaining({
+      authenticated: true,
+      code: 'PROVIDER_UNAVAILABLE',
+      elapsedMs: expect.any(Number),
+    }),
+  );
+  const logged = JSON.stringify(report.mock.calls);
+  expect(logged).not.toMatch(
+    /fixture@|private password|protocol transcript|synthetic-private-password/,
+  );
+});
 it('handles an IMAP socket error during a command and after connection cleanup', async () => {
   vi.spyOn(ImapFlow.prototype, 'connect').mockResolvedValue(undefined);
   const close = vi.spyOn(ImapFlow.prototype, 'close').mockImplementation(() => undefined);

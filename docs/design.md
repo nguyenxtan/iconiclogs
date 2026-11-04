@@ -133,8 +133,8 @@ tra không có dữ liệu hay nút demo; import tĩnh hiện được tree-shak
 
 Đã đăng nhập qua OAuth và deploy website lên Worker mới `iconiclogs-web`,
 có link xem trước `https://iconiclogs-web.tan-nx2377.workers.dev`. Mail ở
-`https://iconiclogs-mail.tan-nx2377.workers.dev`, bật cho `info@iconiclogs.com` và
-`document@iconiclogs.com`; group `fwd@iconiclogs.com` giữ tại Viettel.
+`https://iconiclogs-mail.tan-nx2377.workers.dev`, bật cho 7 hộp thư công ty đã xác
+nhận trong `MAIL_ALLOWED_USERS`; group `fwd@iconiclogs.com` giữ tại Viettel.
 SESSION_KEY sinh ngẫu nhiên, không lưu giá trị trong repo; mật khẩu do người dùng
 nhập lúc đăng nhập. Cloudflare đã kiểm tra TLS/lời chào IMAP 993, SMTP 465 và MIME.
 Sent mặc định APPEND vào thư mục tự nhận diện; chưa nghiệm thu tài khoản thật,

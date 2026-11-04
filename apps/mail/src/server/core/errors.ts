@@ -36,6 +36,31 @@ export function isAuthError(error: unknown): boolean {
     value.message === 'MAIL_AUTH_REJECTED'
   );
 }
+export function loginFailure(error: unknown): MailError {
+  if (isAuthError(error))
+    return new MailError(
+      'LOGIN_FAILED',
+      401,
+      'Máy chủ Viettel từ chối đăng nhập. Vui lòng kiểm tra tài khoản và mật khẩu.',
+    );
+  const code = error && typeof error === 'object' ? (error as { code?: unknown }).code : undefined;
+  if (
+    typeof code === 'string' &&
+    ['PROVIDER_TIMEOUT', 'CONNECT_TIMEOUT', 'GREETING_TIMEOUT', 'ETIMEOUT', 'ETIMEDOUT'].includes(
+      code,
+    )
+  )
+    return new MailError(
+      'PROVIDER_TIMEOUT',
+      504,
+      'Kết nối máy chủ thư quá thời gian. Vui lòng thử lại sau.',
+    );
+  return new MailError(
+    'PROVIDER_UNAVAILABLE',
+    502,
+    'Chưa thể kết nối máy chủ thư. Vui lòng thử lại sau.',
+  );
+}
 export const invalid = () =>
   new MailError('INVALID_INPUT', 400, 'Thông tin chưa hợp lệ. Vui lòng kiểm tra lại.');
 export const unauthorized = () =>

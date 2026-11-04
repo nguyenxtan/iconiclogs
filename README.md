@@ -71,8 +71,9 @@ Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã ki
 các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
 
 Mail: **https://iconiclogs-mail.tan-nx2377.workers.dev**. `MAIL_ENABLED=true`,
-cho phép `info@iconiclogs.com` và `document@iconiclogs.com` đăng nhập bằng mật khẩu
-Viettel hiện có. `fwd@iconiclogs.com` là group do Viettel phân phối thư, không có
+cho phép 7 hộp thư `admin`, `business`, `cs`, `customer`, `director`, `document`
+và `info` tại `@iconiclogs.com` đăng nhập bằng mật khẩu Viettel hiện có.
+`fwd@iconiclogs.com` là group do Viettel phân phối thư, không có
 đăng nhập riêng trong webmail. Mật khẩu chỉ được nhập trên trang đăng nhập,
 không lưu trong cấu hình deploy hoặc Git.
 

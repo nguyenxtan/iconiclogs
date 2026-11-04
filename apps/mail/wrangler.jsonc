@@ -19,7 +19,7 @@
     "MAIL_ENABLED": "true",
     "MAIL_DOMAIN": "iconiclogs.com",
     "MAIL_HOST": "mail.iconiclogs.com",
-    "MAIL_ALLOWED_USERS": "info@iconiclogs.com,document@iconiclogs.com",
+    "MAIL_ALLOWED_USERS": "admin@iconiclogs.com,business@iconiclogs.com,cs@iconiclogs.com,customer@iconiclogs.com,director@iconiclogs.com,document@iconiclogs.com,info@iconiclogs.com",
     "SENT_MODE": "append",
   },
   "durable_objects": {
@@ -29,5 +29,8 @@
     ],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionVault", "MailboxCoordinator"] }],
-  "observability": { "enabled": false },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": false },
+  },
 }
