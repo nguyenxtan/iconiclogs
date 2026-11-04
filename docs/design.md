@@ -212,6 +212,6 @@ thì gửi plain text, không định dạng nhầm chữ ký cũ trong chuỗi 
 
 Review chéo kiểm tra ảnh desktop/mobile và code; UI test bổ sung toàn bộ thao tác
 thư, bộ lọc, soạn/trả lời/chuyển tiếp/file, draft qua hết phiên/đăng nhập và chữ ký.
-Chủ dự án cho phép thử với tan.nx2377@gmail.com; chỉ dùng thư/file tổng hợp có mã
+Chủ dự án cho phép thử với Gmail cá nhân được chỉ định; chỉ dùng thư/file tổng hợp có mã
 ICONIC-QA, không đưa thư khách hàng sang Gmail. Nghiệm thu thật được ghi riêng,
 không coi kiểm thử UI bằng fixture là bằng chứng delivery Viettel.
