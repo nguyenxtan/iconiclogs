@@ -1,3 +1,5 @@
+import type { CompanySignaturePayload, SignatureSettings } from './signature';
+
 export interface MailAddress {
   name: string;
   address: string;
@@ -47,6 +49,7 @@ export interface SendDraft {
   cc: string[];
   bcc?: string[];
   displayName?: string;
+  signature?: CompanySignaturePayload;
   deliveryGuard?: 'unknown' | 'partial';
   deliveryKey?: string;
   subject: string;
@@ -92,6 +95,7 @@ export interface MailQuota {
 export interface MailPreferences {
   displayName: string;
   signature: string;
+  signatureSettings?: SignatureSettings;
   contacts: MailAddress[];
 }
 export interface SavedDraft {

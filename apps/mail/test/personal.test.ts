@@ -91,3 +91,33 @@ it('reconciles a lost draft save response only when the next revision has identi
   ).rejects.toMatchObject({ code: 'DRAFT_CONFLICT' });
   expect((await data.draft(id)).draft.text).toBe(draft.text);
 });
+it('encrypts and restores typed company signature preferences and draft payload', async () => {
+  const { storage, values } = fixture();
+  const data = new PersonalData(storage, secret, 'a@iconiclogs.com');
+  const prefs = {
+    displayName: 'An',
+    signature: 'Custom preserved',
+    signatureSettings: { mode: 'company' as const, jobTitle: 'Operations' },
+    contacts: [],
+  };
+  expect(await data.savePreferences(prefs)).toEqual(prefs);
+  expect(await data.preferences()).toEqual(prefs);
+  expect(JSON.stringify([...values])).not.toContain('Operations');
+  await expect(
+    data.savePreferences({
+      ...prefs,
+      signatureSettings: { mode: 'company', jobTitle: 'Bad\r\nTitle' },
+    }),
+  ).rejects.toThrow();
+  const payload = { jobTitle: 'Operations', offset: 2 };
+  const saved = await data.saveDraft(
+    '12345678-1234-4123-a123-123456789012',
+    { ...draft, signature: payload, deliveryGuard: 'unknown', deliveryKey: 'stable_signature_key' },
+    0,
+  );
+  expect(saved.draft).toMatchObject({
+    signature: payload,
+    deliveryGuard: 'unknown',
+    deliveryKey: 'stable_signature_key',
+  });
+});

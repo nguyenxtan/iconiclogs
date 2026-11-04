@@ -1,3 +1,4 @@
+import { signatureMessageHtml, signaturePayloadInput } from '../../shared/signature';
 import { simpleParser, type ParsedMail } from 'mailparser';
 import nodemailer from 'nodemailer';
 import type { MailMessage, SendDraft } from '../../shared/contracts';
@@ -53,6 +54,16 @@ export async function composeMessage(
     cc: draft.cc,
     subject: draft.subject,
     text: draft.text,
+    ...(draft.signature
+      ? {
+          html: signatureMessageHtml(
+            draft.text,
+            signaturePayloadInput(draft.signature),
+            email,
+            draft.displayName || '',
+          ),
+        }
+      : {}),
     messageId,
     inReplyTo: draft.inReplyTo,
     references: draft.inReplyTo,

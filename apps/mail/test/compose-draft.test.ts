@@ -135,3 +135,124 @@ describe('forward attachment safety', () => {
     expect(files).toEqual([{ name: 'a.txt', type: 'text/plain', content: 'b2s=' }]);
   });
 });
+it('seeds one company signature before quotes and tracks it when typing before the block', async () => {
+  const { currentDraftSignature } = await import('../src/ui/composeDraft');
+  const draft = initialComposeDraft({
+    reply: original,
+    mode: 'reply',
+    email: 'owner@iconiclogs.com',
+    preferences: { displayName: 'An', signature: '', contacts: [] },
+  });
+  expect(draft.signature).toEqual({ jobTitle: '', offset: 2 });
+  expect(draft.text).toContain('ICONIC Logistics');
+  expect(draft.text.indexOf('ICONIC Logistics')).toBeLessThan(draft.text.indexOf('> Line one'));
+  expect(currentDraftSignature(draft, 'Hello\n' + draft.text, 'owner@iconiclogs.com')).toEqual({
+    jobTitle: '',
+    offset: 8,
+  });
+  expect(
+    currentDraftSignature(
+      draft,
+      draft.text.replace('ICONIC Logistics', 'Edited company'),
+      'owner@iconiclogs.com',
+    ),
+  ).toBeUndefined();
+  expect(
+    initialComposeDraft({
+      email: 'owner@iconiclogs.com',
+      preferences: {
+        displayName: 'An',
+        signature: 'saved',
+        contacts: [],
+        signatureSettings: { mode: 'off', jobTitle: '' },
+      },
+    }).text,
+  ).toBe('');
+});
+
+it('never promotes an old forwarded signature when the current company block was removed', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const { currentDraftSignature } = await import('../src/ui/composeDraft');
+  const email = 'owner@iconiclogs.com',
+    name = 'An';
+  const block = companySignature(email, name, '').text;
+  const initial = initialComposeDraft({
+    reply: { ...original, from: { name, address: email }, text: 'Old body\n\n' + block },
+    mode: 'forward',
+    email,
+    preferences: { displayName: name, signature: '', contacts: [] },
+  });
+  expect(currentDraftSignature(initial, initial.text.replace(block, ''), email)).toBeUndefined();
+  // An identical signature in the untouched original must not disable the new current block.
+  expect(currentDraftSignature(initial, 'Hello\n' + initial.text, email)).toEqual({
+    jobTitle: '',
+    offset: 8,
+  });
+  expect(
+    currentDraftSignature(
+      initial,
+      initial.text
+        .replace(block, '')
+        .replace('---------- Thư được chuyển tiếp ----------', 'Edited original divider'),
+      email,
+    ),
+  ).toBeUndefined();
+});
+it('bounds current signature matching before a reply header even if quoted text is unquoted by editing', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const { currentDraftSignature } = await import('../src/ui/composeDraft');
+  const email = 'owner@iconiclogs.com';
+  const block = companySignature(email, 'An', '').text;
+  const initial = initialComposeDraft({
+    reply: { ...original, text: 'Original\n\n' + block },
+    mode: 'reply',
+    email,
+    preferences: { displayName: 'An', signature: '', contacts: [] },
+  });
+  const removed = initial.text.replace(block, '').replace(/^> ?/gm, '');
+  expect(currentDraftSignature(initial, removed, email)).toBeUndefined();
+});
+
+it('falls back when an edited outer forward divider leaves a nested divider after an old signature', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const { currentDraftSignature } = await import('../src/ui/composeDraft');
+  const email = 'owner@iconiclogs.com',
+    displayName = 'An';
+  const block = companySignature(email, displayName, '').text;
+  const initial = initialComposeDraft({
+    reply: {
+      ...original,
+      text: 'Old body\n\n' + block + '\n\n---------- Thư được chuyển tiếp ----------\nOlder body',
+    },
+    mode: 'forward',
+    email,
+    preferences: { displayName, signature: '', contacts: [] },
+  });
+  const edited = initial.text
+    .replace(block, '')
+    .replace('---------- Thư được chuyển tiếp ----------', '[original message]');
+  expect(currentDraftSignature(initial, edited, email)).toBeUndefined();
+});
+it('requires the exact original quoted tail once at the end before formatting the current signature', async () => {
+  const { currentDraftSignature } = await import('../src/ui/composeDraft');
+  const email = 'owner@iconiclogs.com';
+  const initial = initialComposeDraft({
+    reply: original,
+    mode: 'forward',
+    email,
+    preferences: { displayName: 'An', signature: '', contacts: [] },
+  });
+  const tail = initial.text.slice(
+    initial.text.indexOf('\n---------- Thư được chuyển tiếp ----------\n'),
+  );
+  for (const edited of [
+    initial.text + '\nAfter original',
+    initial.text + tail,
+    initial.text.replace('Line one', 'Changed original line'),
+  ])
+    expect(currentDraftSignature(initial, edited, email)).toBeUndefined();
+  expect(currentDraftSignature(initial, 'Before signature\n' + initial.text, email)).toEqual({
+    jobTitle: '',
+    offset: 19,
+  });
+});

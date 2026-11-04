@@ -1,3 +1,4 @@
+import { signaturePayloadInput } from '../../shared/signature';
 import type { Folder, MessageAction, MessageFilter, SendDraft } from '../../shared/contracts';
 import { invalid, MailError } from './errors';
 
@@ -93,9 +94,18 @@ export function sendInput(input: unknown): SendDraft {
   });
   if (size + new TextEncoder().encode(body.text).length > MAX_MIME - 65536)
     throw new MailError('TOO_LARGE', 413, 'Tổng dung lượng thư tối đa 10 MiB, gồm mã hóa file.');
+  let signature: SendDraft['signature'];
+  if (body.signature !== undefined) {
+    try {
+      signature = signaturePayloadInput(body.signature);
+    } catch {
+      throw invalid();
+    }
+  }
   return {
     to,
     cc,
+    ...(signature ? { signature } : {}),
     ...(body.bcc !== undefined ? { bcc } : {}),
     ...(body.displayName !== undefined ? { displayName: (body.displayName as string).trim() } : {}),
     subject: body.subject,

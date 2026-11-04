@@ -1,3 +1,8 @@
+import {
+  companySignature,
+  effectiveSignatureSettings,
+  type CompanySignaturePayload,
+} from '../shared/signature';
 import type { MailAddress, MailMessage, MailPreferences, SendDraft } from '../shared/contracts';
 
 export type ComposeMode = 'reply' | 'replyAll' | 'forward';
@@ -38,11 +43,21 @@ export function initialComposeDraft({
   email: string;
   preferences?: MailPreferences;
 }): SendDraft {
+  const settings = effectiveSignatureSettings(preferences ?? { signature: '' });
+  const branded =
+    settings.mode === 'company'
+      ? companySignature(email, preferences?.displayName ?? '', settings.jobTitle)
+      : undefined;
   const draft: SendDraft = {
     to: [],
     cc: [],
     subject: '',
-    text: preferences?.signature ? `\n\n-- \n${preferences.signature}` : '',
+    text: branded
+      ? `\n\n${branded.text}`
+      : settings.mode === 'custom' && preferences?.signature
+        ? `\n\n-- \n${preferences.signature}`
+        : '',
+    ...(branded ? { signature: { jobTitle: settings.jobTitle, offset: 2 } } : {}),
     attachments: [],
     displayName: preferences?.displayName ?? '',
   };
@@ -129,4 +144,47 @@ export async function forwardAttachments(
     });
   }
   return files;
+}
+
+function signatureQuoteBoundary(
+  text: string,
+): { kind: 'forward' | 'reply'; offset: number } | undefined {
+  const forward = text.indexOf('\n---------- Thư được chuyển tiếp ----------\n');
+  const reply = /\nVào [\s\S]*? đã viết:\n/.exec(text);
+  if (forward >= 0 && (!reply || forward <= reply.index))
+    return { kind: 'forward', offset: forward };
+  return reply ? { kind: 'reply', offset: reply.index } : undefined;
+}
+
+export function currentDraftSignature(
+  initial: SendDraft,
+  text: string,
+  email: string,
+): CompanySignaturePayload | undefined {
+  if (!initial.signature) return undefined;
+  const expected = companySignature(
+    email,
+    initial.displayName ?? '',
+    initial.signature.jobTitle,
+  ).text;
+  const originalBoundary = signatureQuoteBoundary(initial.text);
+  let authored = text;
+  if (originalBoundary) {
+    const originalTail = initial.text.slice(originalBoundary.offset);
+    const tailOffset = text.length - originalTail.length;
+    // Only an unchanged, unique original suffix establishes a safe authoring boundary.
+    // Editing or appending to quoted history deliberately falls back to plain text.
+    if (tailOffset < 0 || !text.endsWith(originalTail) || text.indexOf(originalTail) !== tailOffset)
+      return undefined;
+    authored = text.slice(0, tailOffset);
+  }
+  const offset = authored.indexOf(expected);
+  // Match only the authoring region: forwarded originals may contain an identical old signature.
+  if (
+    offset < 0 ||
+    (offset > 0 && text[offset - 1] !== '\n') ||
+    authored.indexOf(expected, offset + 1) !== -1
+  )
+    return undefined;
+  return { jobTitle: initial.signature.jobTitle, offset };
 }

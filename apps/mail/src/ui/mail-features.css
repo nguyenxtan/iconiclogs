@@ -396,3 +396,14 @@ textarea:focus-visible {
     display: none;
   }
 }
+
+.reader-toolbar > span {
+  color: #596872;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+.mail-subject .eyebrow {
+  color: #596872;
+  font-size: 11px;
+  letter-spacing: 1.3px;
+}

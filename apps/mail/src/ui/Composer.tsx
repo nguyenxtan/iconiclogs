@@ -24,6 +24,7 @@ import {
   contactSuggestions,
   forwardAttachments,
   initialComposeDraft,
+  currentDraftSignature,
   MAX_COMPOSE_BYTES,
   readComposeFile,
   splitRecipients,
@@ -32,6 +33,7 @@ import {
 import { DraftAutosave, type DraftSaveStatus } from './draftAutosave';
 import { sendDraftSafely } from './composeDelivery';
 import './composer-extra.css';
+import { SignaturePreview } from './SignatureEditor';
 
 export function Composer({
   session,
@@ -135,9 +137,12 @@ export function Composer({
       text,
       attachments,
       displayName: initial.displayName ?? preferences?.displayName ?? '',
+      ...(currentDraftSignature(initial, text, session.email)
+        ? { signature: currentDraftSignature(initial, text, session.email) }
+        : {}),
       ...(initial.inReplyTo ? { inReplyTo: initial.inReplyTo } : {}),
     }),
-    [to, cc, bcc, subject, text, attachments, initial, preferences?.displayName],
+    [to, cc, bcc, subject, text, attachments, initial, preferences?.displayName, session.email],
   );
   const locked = closing || state === 'sending' || state === 'unknown' || state === 'delivered';
   const loadingFiles = picking || forwardState === 'loading';
@@ -562,6 +567,20 @@ export function Composer({
               setText(event.target.value);
             }}
           />
+          {formDraft.signature && (
+            <div className="composer-signature-preview">
+              <p>
+                Chữ ký công ty được định dạng khi gửi. Phần văn bản trong nội dung chỉ xuất hiện một
+                lần.
+              </p>
+              <SignaturePreview
+                compact
+                email={session.email}
+                name={formDraft.displayName || ''}
+                jobTitle={formDraft.signature.jobTitle}
+              />
+            </div>
+          )}
           {forwardState !== 'none' && (
             <div
               className={`composer-forward-info ${forwardState === 'error' ? 'has-error' : ''}`}

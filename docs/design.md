@@ -193,3 +193,25 @@ khỏi allowlist thu hồi quyền sao lưu tự động. Bản nháp lost-respo
 chiếu nội dung ở revision kế tiếp, không ghi đè thay đổi của tab khác. Catalog
 giữ flags ở lần capture đầu; restore cùng nội dung/đích được chống lặp và chưa có
 thao tác ép tạo bản mới sau khi người dùng xóa bản đã restore.
+
+## Login theo mẫu và chữ ký — 04/11/2026
+
+Chủ dự án cung cấp ảnh tham chiếu: cảng hoàng hôn rõ nét toàn màn hình, khẩu hiệu
+hai dòng ở trái, box ivory bên phải với logo gốc bên trong, ICONIC Mail, nút xem
+mật khẩu, hỗ trợ đăng nhập/cấu hình và copyright trong box. Đã thay ảnh ban ngày
+bằng `login-port-sunset.webp`, tạo bằng imagegen theo bố cục/tông màu tham chiếu
+(chỉ ảnh nền, không sinh logo/chữ/UI); bỏ hai ảnh login cũ không còn dùng.
+
+Chữ ký có mẫu công ty, văn bản riêng và tắt; mặc định mẫu công ty khi chưa có
+cài đặt hay chữ ký cũ. Nội dung liên hệ lấy từ company.ts; tên/chức danh do người
+dùng chỉnh, email lấy từ tài khoản đã xác thực. Preview dùng cùng renderer với
+MIME gửi ra. Payload chỉ có chức danh/vị trí đoạn văn bản, không nhận HTML tùy ý;
+server xác minh đúng block rồi tạo HTML table với mọi trường cá nhân/body được
+escape và multipart text/plain dự phòng. Sửa chữ ký hay lịch sử trích dẫn mơ hồ
+thì gửi plain text, không định dạng nhầm chữ ký cũ trong chuỗi forward/reply.
+
+Review chéo kiểm tra ảnh desktop/mobile và code; UI test bổ sung toàn bộ thao tác
+thư, bộ lọc, soạn/trả lời/chuyển tiếp/file, draft qua hết phiên/đăng nhập và chữ ký.
+Chủ dự án cho phép thử với tan.nx2377@gmail.com; chỉ dùng thư/file tổng hợp có mã
+ICONIC-QA, không đưa thư khách hàng sang Gmail. Nghiệm thu thật được ghi riêng,
+không coi kiểm thử UI bằng fixture là bằng chứng delivery Viettel.

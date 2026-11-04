@@ -110,3 +110,16 @@ it('validates multi-megabyte file encoding without recursive regex stack use', (
     ).toThrow();
   }
 });
+it('preserves only validated signature descriptors and refuses client HTML or invalid offsets', () => {
+  expect(sendInput({ ...draft, signature: { jobTitle: 'Operations', offset: 0 } })).toMatchObject({
+    signature: { jobTitle: 'Operations', offset: 0 },
+  });
+  for (const signature of [
+    { jobTitle: '', offset: -1 },
+    { jobTitle: '', offset: 1.5 },
+    { jobTitle: '', offset: 131073 },
+    { jobTitle: '', offset: 0, html: '<img src=x>' },
+    { jobTitle: 'x\nY', offset: 0 },
+  ])
+    expect(() => sendInput({ ...draft, signature })).toThrow();
+});

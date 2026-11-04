@@ -1,3 +1,4 @@
+import { signatureSettingsInput } from '../../shared/signature';
 import type { DraftSummary, MailPreferences, SavedDraft, SendDraft } from '../../shared/contracts';
 import { invalid, MailError } from '../core/errors';
 import { sendInput, validEmail } from '../core/validation';
@@ -30,7 +31,16 @@ export function preferencesInput(input: unknown): MailPreferences {
     value.contacts.length > 200
   )
     throw invalid();
+  let signatureSettings: MailPreferences['signatureSettings'];
+  if (value.signatureSettings !== undefined) {
+    try {
+      signatureSettings = signatureSettingsInput(value.signatureSettings);
+    } catch {
+      throw invalid();
+    }
+  }
   return {
+    ...(signatureSettings ? { signatureSettings } : {}),
     displayName: value.displayName.trim(),
     signature: value.signature,
     contacts: value.contacts.map((contact) => {

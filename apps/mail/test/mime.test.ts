@@ -50,3 +50,57 @@ it('keeps Bcc recipients private and uses only the authenticated From address', 
   expect(parsed.from?.value).toEqual([{ address: 'owner@iconiclogs.com', name: 'Nguyễn An' }]);
   expect(messageBody(parsed).cc).toEqual([{ address: 'copy@example.com', name: '' }]);
 });
+
+it('generates a safe company signature alternative at its exact position without duplicating quoted text', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const block = companySignature('owner@iconiclogs.com', 'Nguyễn An', 'Customer Service').text;
+  const before = 'Xin chào <img src=x onerror="alert(1)"> & cảm ơn.\n\n';
+  const after = '\n\n> Original <script>alert(2)</script>\n> ' + block;
+  const draft = {
+    to: ['to@example.com'],
+    cc: [],
+    bcc: ['secret@example.com'],
+    displayName: 'Nguyễn An',
+    subject: 'Signature',
+    text: before + block + after,
+    signature: { jobTitle: 'Customer Service', offset: before.length },
+    attachments: [],
+  };
+  const parsed = await parseMessage(
+    await composeMessage('owner@iconiclogs.com', draft, '<signature@iconiclogs.com>'),
+  );
+  expect(parsed.from?.value[0]!.address).toBe('owner@iconiclogs.com');
+  expect(parsed.text).toBe(draft.text);
+  expect(parsed.html).toContain('<table');
+  expect(parsed.html).toContain('color:#801c18');
+  expect(parsed.html).toContain('&lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp;');
+  expect(parsed.html).toContain('&gt; Original &lt;script&gt;alert(2)&lt;/script&gt;');
+  expect(parsed.html).not.toMatch(/<img|<script|secret@example.com/);
+  expect((parsed.html as string).match(/<table/g)).toHaveLength(1);
+});
+it('falls back to the editable plain body when the signature position or authenticated identity differs', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const block = companySignature('other@iconiclogs.com', 'An', '').text;
+  const draft = {
+    to: ['to@example.com'],
+    cc: [],
+    displayName: 'An',
+    subject: 'Edited',
+    text: block,
+    signature: { jobTitle: '', offset: 0 },
+    attachments: [],
+  };
+  const parsed = await parseMessage(
+    await composeMessage('owner@iconiclogs.com', draft, '<different@iconiclogs.com>'),
+  );
+  expect(parsed.html).toBe(false);
+  expect(parsed.text?.trimEnd()).toBe(block);
+  const moved = await parseMessage(
+    await composeMessage(
+      'other@iconiclogs.com',
+      { ...draft, signature: { jobTitle: '', offset: 1 } },
+      '<offset@iconiclogs.com>',
+    ),
+  );
+  expect(moved.html).toBe(false);
+});

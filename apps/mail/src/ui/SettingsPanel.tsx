@@ -4,6 +4,8 @@ import { validEmail } from '../shared/email';
 import { errorMessage, type MailApi } from './api';
 import { BackupPanel } from './BackupPanel';
 import { Icon } from './Icon';
+import { SignatureEditor } from './SignatureEditor';
+import { signatureSettingsInput } from '../shared/signature';
 import './settings.css';
 
 export interface SettingsPanelProps {
@@ -118,6 +120,13 @@ export function SettingsPanel({
     ) {
       setTab(0);
       setNotice({ error: true, text: 'Tên hiển thị tối đa 100 ký tự, chữ ký tối đa 4.000 ký tự.' });
+      return;
+    }
+    try {
+      if (value.signatureSettings) signatureSettingsInput(value.signatureSettings);
+    } catch {
+      setTab(0);
+      setNotice({ error: true, text: 'Chức danh tối đa 100 ký tự và không có ký tự điều khiển.' });
       return;
     }
     savingRef.current = true;
@@ -261,25 +270,15 @@ export function SettingsPanel({
                 }}
               />
             </div>
-            <div className="settings-field">
-              <div className="settings-label-row">
-                <label htmlFor="settings-signature">Chữ ký</label>
-                <small>{value.signature.length.toLocaleString('vi-VN')} / 4.000</small>
-              </div>
-              <textarea
-                id="settings-signature"
-                rows={6}
-                value={value.signature}
-                maxLength={4000}
-                disabled={saving}
-                placeholder={'Nguyễn An\nICONIC Logistics\nĐiện thoại: …'}
-                onChange={(event) => {
-                  setValue({ ...value, signature: event.target.value });
-                  setNotice(null);
-                }}
-              />
-              <small>Văn bản thuần. Chữ ký được thêm khi bắt đầu soạn thư.</small>
-            </div>
+            <SignatureEditor
+              email={session.email}
+              value={value}
+              disabled={saving}
+              onChange={(next) => {
+                setValue(next);
+                setNotice(null);
+              }}
+            />
           </section>
           <section
             id="settings-panel-1"

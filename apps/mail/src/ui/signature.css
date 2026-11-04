@@ -1,0 +1,177 @@
+.signature-editor {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 25px;
+}
+.signature-choices {
+  border: 0;
+  margin: 0 0 24px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.85fr;
+  gap: 10px;
+  min-width: 0;
+}
+.signature-choices legend {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 13px;
+  color: #263238;
+}
+.signature-choices label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  background: #fff;
+  padding: 15px 11px;
+  cursor: pointer;
+  min-width: 0;
+}
+.signature-choices label.is-selected {
+  border-color: #a45c59;
+  background: #fbf6f6;
+  box-shadow: 0 0 0 1px #a45c591a;
+}
+.signature-choices input {
+  accent-color: #801c18;
+  width: 14px;
+  height: 14px;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+}
+.signature-choices strong {
+  display: block;
+  color: #263238;
+  font-size: 12px;
+  font-weight: 600;
+}
+.signature-choices small {
+  display: block;
+  color: #65727b;
+  line-height: 1.7;
+  font-size: 10px;
+  margin-top: 5px;
+}
+.signature-choices label.is-selected strong {
+  color: #801c18;
+}
+.signature-title-field label span {
+  font-weight: 400;
+  color: #65727b;
+  font-size: 11px;
+  margin-left: 4px;
+}
+.signature-title-field {
+  margin-bottom: 22px;
+}
+.signature-preview {
+  border: 1px solid #dce3e7;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #f4f6f7;
+  margin: 0;
+}
+.signature-preview-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  font-weight: 600;
+  color: #5a6871;
+  padding: 12px 17px;
+  border-bottom: 1px solid #e2e7ea;
+}
+.signature-preview-label > span:last-child {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #801c18;
+}
+.signature-preview-paper {
+  padding: 29px 25px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+.signature-preview-paper a {
+  pointer-events: none;
+}
+.signature-caption {
+  color: #65727b;
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 12px 0 25px;
+}
+.signature-custom-field {
+  margin-top: 25px;
+  margin-bottom: 0;
+}
+.signature-custom-field textarea {
+  min-height: 100px;
+}
+.signature-custom-preview {
+  margin-top: 20px;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.signature-custom-preview .signature-preview-label {
+  background: #f4f6f7;
+}
+.signature-custom-preview pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+  padding: 22px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #263238;
+}
+.composer-signature-preview {
+  margin: 0 28px 23px;
+}
+.composer-signature-preview > p {
+  font-size: 11px;
+  color: #65727b;
+  line-height: 1.7;
+  margin: 0 0 11px;
+}
+.composer-signature-preview .signature-preview-label {
+  padding: 10px 15px;
+}
+.composer-signature-preview .signature-preview-paper {
+  padding: 22px;
+}
+@media (max-width: 600px) {
+  .signature-choices {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .signature-choices label {
+    padding: 13px;
+    align-items: center;
+  }
+  .signature-choices small {
+    margin-top: 3px;
+  }
+  .signature-preview-paper {
+    padding: 24px 15px;
+  }
+  .signature-preview-paper table {
+    max-width: 100% !important;
+  }
+  .signature-preview-paper td {
+    padding-left: 13px !important;
+  }
+  .composer-signature-preview {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .composer-signature-preview .signature-preview-paper {
+    padding: 20px 13px;
+  }
+}
