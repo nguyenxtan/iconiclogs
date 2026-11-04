@@ -44,3 +44,6 @@ it('rejects unknown templates, arbitrary HTML and injected or oversized job titl
   ])
     expect(() => signatureSettingsInput(value)).toThrow();
 });
+it('keeps literal contact separator spaces when an email viewer removes all styling', () => {
+  expect(companySignature('cs@iconiclogs.com', 'An', '').html).toMatch(/<span[^>]*> \| <\/span>/);
+});

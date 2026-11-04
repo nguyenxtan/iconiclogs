@@ -268,9 +268,12 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
     .flatMap((entry) => entry.items)
     .filter((item) => item.state === 'restored').length;
   const failed = [...itemErrors.values()].filter((item) => item.state === 'failed').length;
+  const sending = journal
+    .flatMap((entry) => entry.items)
+    .filter((item) => item.state === 'sending').length;
   const uncertain = journal
     .flatMap((entry) => entry.items)
-    .filter((item) => item.state === 'uncertain' || item.state === 'sending').length;
+    .filter((item) => item.state === 'uncertain').length;
   return (
     <div className="backup-panel">
       <div className="settings-section-heading backup-title">
@@ -495,18 +498,24 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
         </div>
       )}
       {!!journal.length && (
-        <div className={`notice ${uncertain || failed ? 'warning' : 'success'}`} role="status">
+        <div
+          className={`notice ${uncertain || failed ? 'warning' : sending ? '' : 'success'}`}
+          role="status"
+        >
           <div>
             <strong>
-              {restored} thư đã khôi phục{uncertain ? ` · ${uncertain} thư chưa xác định` : ''}
+              {restored} thư đã khôi phục{sending ? ` · ${sending} thư đang khôi phục` : ''}
+              {uncertain ? ` · ${uncertain} thư chưa xác định` : ''}
               {failed ? ` · ${failed} thư chưa ghi` : ''}
             </strong>
             <p>
-              {uncertain
-                ? 'Các thư chưa xác định đã bị khóa gửi lại. Kiểm tra thư mục đích với quản trị viên.'
-                : failed
-                  ? 'Các thư chưa ghi có thể được chọn lại để thử khôi phục sau khi bạn xác nhận.'
-                  : 'Thư được thêm vào thư mục đích; thư đang có vẫn được giữ.'}
+              {sending
+                ? 'Đang thêm thư vào thư mục đích. Vui lòng chờ kết quả khôi phục.'
+                : uncertain
+                  ? 'Các thư chưa xác định đã bị khóa gửi lại. Kiểm tra thư mục đích với quản trị viên.'
+                  : failed
+                    ? 'Các thư chưa ghi có thể được chọn lại để thử khôi phục sau khi bạn xác nhận.'
+                    : 'Thư được thêm vào thư mục đích; thư đang có vẫn được giữ.'}
             </p>
             {pending && (
               <>
@@ -613,7 +622,11 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
                     {formatDate(item.internalDate)}
                     <span aria-hidden="true"> · </span>
                     {item.folder}
-                    {attempted.has(item.id) ? ' · Đã xử lý trong tab này' : ''}
+                    {itemErrors.get(item.id)?.state === 'sending'
+                      ? ' · Đang khôi phục'
+                      : attempted.has(item.id)
+                        ? ' · Đã xử lý trong tab này'
+                        : ''}
                     {itemErrors.get(item.id)?.state === 'failed'
                       ? ' · Chưa ghi thư, có thể chọn để thử lại'
                       : ''}

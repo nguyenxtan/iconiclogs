@@ -243,3 +243,96 @@ test('suspended daily backup shows a refresh action instead of an active schedul
   expect(refresh).toBe(true);
   await expect(page.locator('.backup-policy .backup-badge')).toHaveText('Đang bật');
 });
+
+test('in-flight restore waits for its response without reporting permanent uncertainty', async ({
+  page,
+}) => {
+  await syntheticBackup(page);
+  let release!: () => void;
+  const response = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested = false;
+  await page.route('**/api/backups/restore', async (route) => {
+    requested = true;
+    const body = route.request().postDataJSON();
+    await response;
+    await route.fulfill({ json: { state: 'restored', id: body.id, targetFolder: body.folder } });
+  });
+  try {
+    const item = page.getByRole('checkbox', {
+      name: 'Chọn Hồ sơ xuất khẩu thử nghiệm',
+      exact: true,
+    });
+    await item.check();
+    await page.getByRole('button', { name: 'Khôi phục 1 thư đã chọn', exact: true }).click();
+    await page.getByRole('button', { name: 'Xác nhận khôi phục 1 thư', exact: true }).click();
+    await expect.poll(() => requested).toBe(true);
+    await expect(
+      page.getByText('0 thư đã khôi phục · 1 thư đang khôi phục', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        'Các thư chưa xác định đã bị khóa gửi lại. Kiểm tra thư mục đích với quản trị viên.',
+        { exact: true },
+      ),
+    ).toHaveCount(0);
+    await expect(item).toBeDisabled();
+    await expect(
+      page.locator('.backup-items li').filter({ hasText: 'Hồ sơ xuất khẩu thử nghiệm' }),
+    ).toContainText('Đang khôi phục');
+    expect(
+      await page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem('iconic-mail-restore-v1:synthetic@iconiclogs.com')!)[0]
+            .items[0].state,
+      ),
+    ).toBe('sending');
+    release();
+    await expect(page.getByText('1 thư đã khôi phục', { exact: true })).toBeVisible();
+    await expect(item).toBeDisabled();
+    await expect(
+      page.getByText('0 thư đã khôi phục · 1 thư đang khôi phục', { exact: true }),
+    ).toHaveCount(0);
+  } finally {
+    release();
+  }
+});
+
+test('reopened interrupted restore remains uncertain and locked instead of looking active', async ({
+  page,
+}) => {
+  await syntheticBackup(page);
+  await page.evaluate(() =>
+    sessionStorage.setItem(
+      'iconic-mail-restore-v1:synthetic@iconiclogs.com',
+      JSON.stringify([
+        {
+          target: 'inbox',
+          items: [
+            {
+              id: '2'.repeat(64),
+              requestId: '11111111-1111-4111-a111-111111111111',
+              state: 'sending',
+            },
+          ],
+        },
+      ]),
+    ),
+  );
+  await page.reload();
+  await page.getByRole('button', { name: 'Cài đặt và sao lưu', exact: true }).first().click();
+  await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
+  await expect(
+    page.getByText('0 thư đã khôi phục · 1 thư chưa xác định', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('checkbox', { name: 'Chọn Hồ sơ xuất khẩu thử nghiệm', exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText(
+      'Các thư chưa xác định đã bị khóa gửi lại. Kiểm tra thư mục đích với quản trị viên.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+});
