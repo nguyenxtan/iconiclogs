@@ -31,7 +31,7 @@ import {
 } from '../core/validation';
 import { composeMessage, ensureMimeSize, messageBody, parseMessage } from './mime';
 import { deliverMessage } from './smtp';
-import { attachmentParts, type AttachmentPart } from './parts';
+import { attachmentParts, decodedAttachmentParts, type AttachmentPart } from './parts';
 
 const address = (value?: MessageAddressObject) => ({
   name: value?.name || '',
@@ -495,7 +495,7 @@ export class ViettelProvider implements MailProvider {
           );
         return {
           parsed,
-          parts: attachmentParts(row.bodyStructure),
+          parts: decodedAttachmentParts(row.bodyStructure, parsed.attachments),
           item: {
             ...summary(row, key.validity),
             unread: markSeen ? false : !row.flags?.has('\\Seen'),

@@ -294,3 +294,21 @@ it('keeps literal original greater-than prefixes only in the separate structured
   expect(draft.text).not.toContain('Ordinary line');
   expect(draft.quote?.text).toBe('Ordinary line\n> Existing literal prefix');
 });
+it('downloads attachments with unknown decoded metadata and enforces their actual bytes', async () => {
+  const message = {
+    ...original,
+    attachments: [
+      { id: 0, name: 'unknown.txt', type: 'text/plain', size: 8 * 1024 * 1024, sizeKnown: false },
+    ],
+  };
+  let downloads = 0;
+  const files = await forwardAttachments(message, async () => {
+    downloads++;
+    return new Blob(['x'.repeat(119)]);
+  });
+  expect(downloads).toBe(1);
+  expect(Buffer.from(files[0]!.content, 'base64').length).toBe(119);
+  await expect(
+    forwardAttachments(message, async () => new Blob([new Uint8Array(7 * 1024 * 1024 + 1)])),
+  ).rejects.toThrow('7 MB');
+});

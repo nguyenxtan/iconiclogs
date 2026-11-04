@@ -250,7 +250,11 @@ export function Reader({
                   <span>
                     <strong>{attachment.name}</strong>
                     <small>
-                      {downloading === attachment.id ? 'Đang tải…' : formatSize(attachment.size)}
+                      {downloading === attachment.id
+                        ? 'Đang tải…'
+                        : attachment.sizeKnown === false
+                          ? 'Chưa xác định dung lượng'
+                          : formatSize(attachment.size)}
                     </small>
                   </span>
                   <Icon name="download" size={17} />

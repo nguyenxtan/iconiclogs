@@ -11,6 +11,8 @@ export interface AttachmentInfo {
   name: string;
   type: string;
   size: number;
+  /** False when decoded attachment bytes could not be matched to its IMAP part. */
+  sizeKnown?: boolean;
 }
 export interface MessageSummary {
   id: string;

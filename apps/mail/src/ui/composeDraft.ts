@@ -126,7 +126,10 @@ export async function forwardAttachments(
   message: MailMessage,
   download: (id: number) => Promise<Blob>,
 ): Promise<SendDraft['attachments']> {
-  if (message.attachments.reduce((sum, file) => sum + file.size, 0) > MAX_COMPOSE_BYTES) {
+  if (
+    message.attachments.reduce((sum, file) => sum + (file.sizeKnown === false ? 0 : file.size), 0) >
+    MAX_COMPOSE_BYTES
+  ) {
     throw Error('Tổng tệp gốc vượt giới hạn 7 MB.');
   }
   const files: SendDraft['attachments'] = [];

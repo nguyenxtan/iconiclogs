@@ -367,3 +367,70 @@ it('does not enable a MOVE fallback just because inactive IMAP4rev2 was advertis
   ).rejects.toMatchObject({ code: 'MOVE_UNSUPPORTED' });
   expect(move).not.toHaveBeenCalled();
 });
+it('reports the downloaded decoded byte count rather than base64 BODYSTRUCTURE octets', async () => {
+  const bytes = Buffer.from('x'.repeat(119));
+  const raw = Buffer.from(
+    `MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="test"\r\n\r\n--test\r\nContent-Type: text/plain\r\n\r\nHello\r\n--test\r\nContent-Type: text/plain\r\nContent-Disposition: attachment; filename="fixture.txt"\r\nContent-Transfer-Encoding: base64\r\n\r\n${bytes.toString('base64')}\r\n--test--\r\n`,
+  );
+  const provider = fixture({
+    mailbox: { uidValidity: 123n },
+    getMailboxLock: async () => ({ release() {} }),
+    fetchOne: async () => ({
+      uid: 42,
+      size: raw.length,
+      flags: new Set(),
+      bodyStructure: {
+        type: 'multipart/mixed',
+        childNodes: [
+          { type: 'text/plain', part: '1', size: 5 },
+          {
+            type: 'text/plain',
+            part: '2',
+            size: 164,
+            disposition: 'attachment',
+            dispositionParameters: { filename: 'fixture.txt' },
+          },
+        ],
+      },
+    }),
+    download: async () => ({ meta: { expectedSize: raw.length }, content: Readable.from([raw]) }),
+    messageFlagsAdd: async () => true,
+  });
+  expect((await provider.read('inbox', '123.42')).attachments[0]).toMatchObject({
+    id: 0,
+    name: 'fixture.txt',
+    size: 119,
+  });
+});
+it('keeps the readable body when a downloadable attachment part has no safe decoded metadata match', async () => {
+  const raw = Buffer.from(
+    'MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="test"\r\n\r\n--test\r\nContent-Type: text/plain\r\n\r\nReadable body\r\n--test\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename="fixture.bin"\r\nContent-Transfer-Encoding: base64\r\n\r\nAQID\r\n--test--\r\n',
+  );
+  const provider = fixture({
+    mailbox: { uidValidity: 123n },
+    getMailboxLock: async () => ({ release() {} }),
+    fetchOne: async () => ({
+      uid: 42,
+      size: raw.length,
+      flags: new Set(),
+      bodyStructure: {
+        type: 'multipart/mixed',
+        childNodes: [
+          { type: 'text/plain', part: '1', size: 13 },
+          {
+            type: 'application/octet-stream',
+            part: '9',
+            size: 4,
+            disposition: 'attachment',
+            dispositionParameters: { filename: 'fixture.bin' },
+          },
+        ],
+      },
+    }),
+    download: async () => ({ meta: { expectedSize: raw.length }, content: Readable.from([raw]) }),
+    messageFlagsAdd: async () => true,
+  });
+  const message = await provider.read('inbox', '123.42');
+  expect(message.text.trim()).toBe('Readable body');
+  expect(message.attachments[0]).toMatchObject({ id: 0, name: 'fixture.bin', sizeKnown: false });
+});
