@@ -8,3 +8,6 @@ MAIL_ALLOWED_USERS=
 SESSION_KEY=
 # Set only after checking provider behavior: append or provider
 SENT_MODE=
+# Backup encryption, separate from SESSION_KEY; private local R2 binding is in Wrangler.
+# Leave empty to keep backup unavailable locally.
+BACKUP_KEY=

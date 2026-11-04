@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Folder, MailMessage, MessagePage, SessionInfo } from '../shared/contracts';
+import type {
+  Folder,
+  MailMessage,
+  MessagePage,
+  SessionInfo,
+  MailFolder,
+  MessageFilter,
+  MessageAction,
+  MailQuota,
+  MailPreferences,
+  DraftSummary,
+  SavedDraft,
+} from '../shared/contracts';
 import { errorMessage, liveApi, MailApiError, type MailApi } from './api';
 import { Composer } from './Composer';
 import { createDemoApi } from './demo';
@@ -8,6 +20,8 @@ import { Login } from './Login';
 import { Logo } from './Logo';
 import { folderLabel, MessageList } from './MessageList';
 import { Reader } from './Reader';
+import { SettingsPanel } from './SettingsPanel';
+import './mail-features.css';
 
 export function App() {
   const [collapsed, setCollapsed] = useState(() => {
@@ -45,7 +59,28 @@ export function App() {
   const [readerError, setReaderError] = useState('');
   const [refresh, setRefresh] = useState(0);
   const [readRefresh, setReadRefresh] = useState(0);
-  const [composer, setComposer] = useState<{ reply: MailMessage | null } | null>(null);
+  const [composer, setComposer] = useState<{
+    reply: MailMessage | null;
+    mode?: 'reply' | 'replyAll' | 'forward';
+    saved?: SavedDraft;
+  } | null>(null);
+  const [folders, setFolders] = useState<MailFolder[]>([
+    { id: 'inbox', name: 'Hộp thư đến', role: 'inbox' },
+    { id: 'sent', name: 'Đã gửi', role: 'sent' },
+  ]);
+  const [filter, setFilter] = useState<MessageFilter>({});
+  const [checked, setChecked] = useState<string[]>([]);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [preferences, setPreferences] = useState<MailPreferences>({
+    displayName: '',
+    signature: '',
+    contacts: [],
+  });
+  const [quota, setQuota] = useState<MailQuota | null>(null);
+  const [drafts, setDrafts] = useState<DraftSummary[]>([]);
+  const [draftView, setDraftView] = useState(false);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [notification, setNotification] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutPending = useRef(false);
@@ -65,6 +100,13 @@ export function App() {
     setReaderError('');
     setListBusy(false);
     setReaderBusy(false);
+    setDrafts([]);
+    setSettingsOpen(false);
+    setDraftView(false);
+    setFilter({});
+    setChecked([]);
+    setQuota(null);
+    setPreferences({ displayName: '', signature: '', contacts: [] });
   }, []);
   const expire = useCallback(
     () => clearSession('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.'),
@@ -104,12 +146,12 @@ export function App() {
     return () => window.clearTimeout(timeout);
   }, [session, expire]);
   useEffect(() => {
-    if (!session) return;
+    if (!session || draftView) return;
     let active = true;
     setListBusy(true);
     setListError('');
     api
-      .messages(folder, page)
+      .messages(folder, page, filter)
       .then((value) => {
         if (active) setData(value);
       })
@@ -122,7 +164,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [api, session, folder, page, refresh, checkExpired]);
+  }, [api, session, folder, page, refresh, checkExpired, filter, draftView]);
   useEffect(() => {
     if (!session || !selected) {
       setReaderBusy(false);
@@ -159,6 +201,108 @@ export function App() {
       active = false;
     };
   }, [api, session, folder, selected, readRefresh, checkExpired]);
+  const refreshDrafts = useCallback(async () => {
+    if (!session) return;
+    try {
+      setDrafts(await api.drafts());
+    } catch (error) {
+      if (!checkExpired(error)) setNotification(errorMessage(error));
+    }
+  }, [api, session, checkExpired]);
+  const refreshFolders = useCallback(async () => {
+    if (!session) return;
+    try {
+      setFolders(await api.folders());
+    } catch (error) {
+      if (!checkExpired(error)) setNotification(errorMessage(error));
+    }
+  }, [api, session, checkExpired]);
+  useEffect(() => {
+    if (!session) return;
+    let active = true;
+    const load = async () => {
+      const results = await Promise.allSettled([
+        api.folders(),
+        api.preferences(),
+        api.drafts(),
+        api.quota(),
+      ]);
+      if (!active) return;
+      const [folderResult, prefsResult, draftsResult, quotaResult] = results;
+      if (folderResult.status === 'fulfilled') setFolders(folderResult.value);
+      if (prefsResult.status === 'fulfilled') setPreferences(prefsResult.value);
+      if (draftsResult.status === 'fulfilled') setDrafts(draftsResult.value);
+      if (quotaResult.status === 'fulfilled') setQuota(quotaResult.value);
+      for (const result of results)
+        if (result.status === 'rejected' && checkExpired(result.reason)) return;
+      if (prefsResult.status === 'rejected' || draftsResult.status === 'rejected')
+        setNotification('Chưa tải được cài đặt hoặc bản nháp. Hãy kết nối lại rồi tải lại trang.');
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [api, session, checkExpired]);
+  useEffect(() => {
+    if (!session) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        setRefresh((value) => value + 1);
+        void refreshFolders();
+      }
+    }, 60000);
+    return () => window.clearInterval(timer);
+  }, [session, refreshFolders]);
+  async function act(action: MessageAction) {
+    if (!session || actionBusy) return;
+    setActionBusy(true);
+    try {
+      await api.action(folder, action, session.csrfToken);
+      setChecked([]);
+      if (action.action === 'move') {
+        setSelected(null);
+        setMessage(null);
+      } else if (message && action.ids.includes(message.id)) {
+        setMessage({
+          ...message,
+          ...(action.action === 'read'
+            ? { unread: false }
+            : action.action === 'unread'
+              ? { unread: true }
+              : action.action === 'star'
+                ? { starred: true }
+                : { starred: false }),
+        });
+      }
+      setRefresh((value) => value + 1);
+      void refreshFolders();
+    } catch (error) {
+      if (!checkExpired(error)) setNotification(errorMessage(error));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+  async function openDraft(id: string) {
+    setDraftBusy(true);
+    try {
+      setComposer({ reply: null, saved: await api.draft(id) });
+    } catch (error) {
+      if (!checkExpired(error)) setNotification(errorMessage(error));
+    } finally {
+      setDraftBusy(false);
+    }
+  }
+  async function createFolder() {
+    if (!session) return;
+    const name = window.prompt('Tên thư mục mới');
+    if (!name?.trim()) return;
+    try {
+      await api.createFolder(name.trim(), session.csrfToken);
+      await refreshFolders();
+    } catch (error) {
+      if (!checkExpired(error)) setNotification(errorMessage(error));
+    }
+  }
   async function login(email: string, password: string) {
     setLoginBusy(true);
     setLoginError('');
@@ -194,7 +338,13 @@ export function App() {
     }
   }
   function changeFolder(next: Folder) {
-    if (next === folder) return;
+    setDraftView(false);
+    setFilter({});
+    setChecked([]);
+    if (next === folder) {
+      setRefresh((value) => value + 1);
+      return;
+    }
     setFolder(next);
     setPage(1);
     setData(null);
@@ -203,6 +353,7 @@ export function App() {
     setNotification('');
   }
   function changePage(next: number) {
+    setChecked([]);
     setPage(next);
     setData(null);
     setSelected(null);
@@ -270,22 +421,80 @@ export function App() {
         </button>
         <div className="sidebar-section-title">HỘP THƯ CỦA BẠN</div>
         <nav id="mail-folder-navigation" aria-label="Thư mục">
-          {(['inbox', 'sent'] as const).map((item) => (
+          {folders.map((item) => (
             <button
-              className={`folder-button ${folder === item ? 'active' : ''}`}
-              key={item}
-              onClick={() => changeFolder(item)}
-              aria-current={folder === item ? 'page' : undefined}
-              aria-label={folderLabel(item)}
-              title={folderLabel(item)}
+              className={`folder-button ${!draftView && folder === item.id ? 'active' : ''}`}
+              key={item.id}
+              onClick={() => changeFolder(item.id)}
+              aria-current={!draftView && folder === item.id ? 'page' : undefined}
+              aria-label={item.role ? folderLabel(item.id) : item.name}
+              title={item.role ? folderLabel(item.id) : item.name}
             >
-              <Icon name={item} size={19} />
-              <span>{folderLabel(item)}</span>
-              {folder === item && data && <span className="folder-count">{data.total}</span>}
+              <Icon
+                name={
+                  item.role === 'inbox'
+                    ? 'inbox'
+                    : item.role === 'sent'
+                      ? 'sent'
+                      : item.role === 'trash'
+                        ? 'trash'
+                        : item.role === 'archive'
+                          ? 'archive'
+                          : 'folder'
+                }
+                size={19}
+              />
+              <span>{item.role ? folderLabel(item.id) : item.name}</span>
+              {!!item.unread && <span className="folder-count">{item.unread}</span>}
             </button>
           ))}
+          <button
+            className={`folder-button ${draftView ? 'active' : ''}`}
+            onClick={() => {
+              setDraftView(true);
+              setSelected(null);
+              void refreshDrafts();
+            }}
+            title="Bản nháp"
+            aria-label="Bản nháp"
+          >
+            <Icon name="draft" size={19} />
+            <span>Bản nháp</span>
+            {!!drafts.length && <span className="folder-count">{drafts.length}</span>}
+          </button>
+          <button
+            className="folder-button"
+            onClick={() => void createFolder()}
+            title="Tạo thư mục"
+            aria-label="Tạo thư mục"
+          >
+            <Icon name="plus" size={19} />
+            <span>Tạo thư mục</span>
+          </button>
+          <button
+            className="folder-button"
+            onClick={() => setSettingsOpen(true)}
+            title="Cài đặt và sao lưu"
+            aria-label="Cài đặt và sao lưu"
+          >
+            <Icon name="settings" size={19} />
+            <span>Cài đặt & sao lưu</span>
+          </button>
         </nav>
         <div className="sidebar-bottom">
+          {quota && quota.limit > 0 && (
+            <div
+              className={`mail-quota ${quota.used / quota.limit >= 0.85 ? 'quota-warning' : ''}`}
+              title={`${Math.round(quota.used / 1048576)} / ${Math.round(quota.limit / 1048576)} MiB`}
+            >
+              <span>
+                Dung lượng {Math.round(quota.used / 1048576)} / {Math.round(quota.limit / 1048576)}{' '}
+                MiB
+              </span>
+              <progress aria-label="Dung lượng hộp thư" value={quota.used} max={quota.limit} />
+              {quota.used / quota.limit >= 0.85 && <strong>Hộp thư gần đầy</strong>}
+            </div>
+          )}
           <div className="account">
             <span className="account-avatar">{session.email.slice(0, 1).toUpperCase()}</span>
             <div>
@@ -321,13 +530,41 @@ export function App() {
       <div className="workspace">
         <header className="workspace-header">
           <span>
-            Mail <span className="breadcrumb-slash">/</span> <strong>{folderLabel(folder)}</strong>
+            Mail <span className="breadcrumb-slash">/</span>{' '}
+            <strong>{draftView ? 'Bản nháp' : folderLabel(folder)}</strong>
           </span>
           <div>
             <span className="connection-dot" />
             {demo ? 'Không gian bản mẫu' : session.email}
           </div>
         </header>
+        <div className="mobile-mail-navigation">
+          <select
+            aria-label="Thư mục hiện tại"
+            value={draftView ? 'personal-drafts' : folder}
+            onChange={(event) => {
+              if (event.target.value === 'personal-drafts') {
+                setDraftView(true);
+                setSelected(null);
+                void refreshDrafts();
+              } else changeFolder(event.target.value as Folder);
+            }}
+          >
+            {folders.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.role ? folderLabel(item.id) : item.name}
+              </option>
+            ))}
+            <option value="personal-drafts">Bản nháp ({drafts.length})</option>
+          </select>
+          <button
+            className="icon-button"
+            aria-label="Cài đặt và sao lưu"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Icon name="settings" />
+          </button>
+        </div>
         {notification && (
           <div className="notice error workspace-notice" role="alert">
             <span>{notification}</span>
@@ -340,35 +577,97 @@ export function App() {
             </button>
           </div>
         )}
-        <div className="workspace-panes">
-          <MessageList
-            folder={folder}
-            data={data}
-            page={page}
-            busy={listBusy}
-            error={listError}
-            selected={selected}
-            onSelect={setSelected}
-            onPage={changePage}
-            onRefresh={() => setRefresh((value) => value + 1)}
-          />
-          <Reader
-            message={message}
-            busy={readerBusy}
-            error={readerError}
-            folder={folder}
-            api={api}
-            onReply={(reply) => setComposer({ reply })}
-            onBack={() => {
-              setSelected(null);
-              setMessage(null);
-            }}
-            onError={(error) => {
-              if (!checkExpired(error)) setNotification(errorMessage(error));
-            }}
-            onRetry={() => setReadRefresh((value) => value + 1)}
-          />
-        </div>
+        {draftView ? (
+          <section className="personal-drafts" aria-label="Bản nháp">
+            <header>
+              <div>
+                <h1>
+                  Bản nháp <span>{drafts.length}</span>
+                </h1>
+                <p>Được tự lưu trong ICONIC Mail, mở lại sau khi đăng nhập.</p>
+              </div>
+              <button
+                className="icon-button"
+                onClick={() => void refreshDrafts()}
+                aria-label="Làm mới bản nháp"
+              >
+                <Icon name="refresh" />
+              </button>
+            </header>
+            {draftBusy && <p role="status">Đang mở bản nháp…</p>}
+            {drafts.length ? (
+              drafts.map((draft) => (
+                <button
+                  className="draft-card"
+                  key={draft.id}
+                  onClick={() => void openDraft(draft.id)}
+                  disabled={draftBusy}
+                >
+                  <Icon name="draft" />
+                  <span>
+                    <strong>{draft.subject || '(Chưa có tiêu đề)'}</strong>
+                    <small>{draft.to.join(', ') || 'Chưa có người nhận'}</small>
+                  </span>
+                  <time>{new Date(draft.updatedAt).toLocaleString('vi-VN')}</time>
+                  <Icon name="chevron" size={16} />
+                </button>
+              ))
+            ) : (
+              <div className="pane-state">
+                <Icon name="draft" size={32} />
+                <h2>Chưa có bản nháp</h2>
+                <p>Nội dung đang soạn sẽ được tự lưu tại đây.</p>
+              </div>
+            )}
+          </section>
+        ) : (
+          <div className="workspace-panes">
+            <MessageList
+              key={folder}
+              filter={filter}
+              onFilter={(value) => {
+                setFilter(value);
+                setPage(1);
+                setChecked([]);
+                setData(null);
+              }}
+              checked={checked}
+              onCheck={setChecked}
+              onAction={(action) => void act(action)}
+              folders={folders}
+              actionBusy={actionBusy}
+              folder={folder}
+              data={data}
+              page={page}
+              busy={listBusy}
+              error={listError}
+              selected={selected}
+              onSelect={setSelected}
+              onPage={changePage}
+              onRefresh={() => setRefresh((value) => value + 1)}
+            />
+            <Reader
+              message={message}
+              busy={readerBusy}
+              error={readerError}
+              folder={folder}
+              api={api}
+              onReply={(reply) => setComposer({ reply, mode: 'reply' })}
+              onReplyAll={(reply) => setComposer({ reply, mode: 'replyAll' })}
+              onForward={(reply) => setComposer({ reply, mode: 'forward' })}
+              onAction={(action) => void act(action)}
+              actionBusy={actionBusy}
+              onBack={() => {
+                setSelected(null);
+                setMessage(null);
+              }}
+              onError={(error) => {
+                if (!checkExpired(error)) setNotification(errorMessage(error));
+              }}
+              onRetry={() => setReadRefresh((value) => value + 1)}
+            />
+          </div>
+        )}
       </div>
       <button
         className="mobile-compose button primary"
@@ -377,14 +676,40 @@ export function App() {
       >
         <Icon name="plus" size={24} />
       </button>
+      {settingsOpen && (
+        <SettingsPanel
+          api={api}
+          session={session}
+          preferences={preferences}
+          folders={folders}
+          onSaved={setPreferences}
+          onClose={() => setSettingsOpen(false)}
+          onError={(error) => {
+            if (!checkExpired(error)) setNotification(errorMessage(error));
+          }}
+        />
+      )}
       {composer && (
         <Composer
+          key={composer.saved?.id ?? `${composer.reply?.id ?? 'new'}:${composer.mode ?? 'new'}`}
+          mode={composer.mode}
+          saved={composer.saved}
+          sourceFolder={folder}
+          preferences={preferences}
+          onDraftChanged={() => void refreshDrafts()}
           session={session}
           api={api}
           demo={demo}
           reply={composer.reply}
-          onClose={() => setComposer(null)}
-          onSent={() => setRefresh((value) => value + 1)}
+          onClose={() => {
+            setComposer(null);
+            void refreshDrafts();
+          }}
+          onSent={() => {
+            setRefresh((value) => value + 1);
+            void refreshDrafts();
+            void refreshFolders();
+          }}
           onExpired={expire}
         />
       )}

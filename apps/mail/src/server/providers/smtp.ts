@@ -59,7 +59,10 @@ export async function deliverMessage(
   let info: SMTPTransport.SentMessageInfo;
   try {
     info = await transport.sendMail({
-      envelope: { from: credentials.email, to: [...draft.to, ...draft.cc] },
+      envelope: {
+        from: credentials.email,
+        to: [...new Set([...draft.to, ...draft.cc, ...(draft.bcc || [])])],
+      },
       raw,
     });
   } catch (error) {
@@ -70,7 +73,7 @@ export async function deliverMessage(
       status: definite ? 'failed' : 'unknown',
       sentCopy: 'not-applicable',
       accepted: [],
-      rejected: definite ? [...draft.to, ...draft.cc] : [],
+      rejected: definite ? [...new Set([...draft.to, ...draft.cc, ...(draft.bcc || [])])] : [],
     };
   } finally {
     transport.close();

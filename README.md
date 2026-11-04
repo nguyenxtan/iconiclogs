@@ -65,7 +65,7 @@ Mail dùng URL Workers riêng. `mail.iconiclogs.com` vẫn trỏ tới Viettel �
 phục vụ các ứng dụng mail hiện có; không trỏ hostname này hay MX vào Worker.
 Gửi/nhận thật, bản Sent và file đính kèm cần kiểm thử bằng tài khoản của chủ hộp thư.
 
-## Trạng thái Cloudflare — 03/11/2026
+## Trạng thái Cloudflare — 04/11/2026
 
 Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã kiểm tra
 các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
@@ -78,10 +78,25 @@ và `info` tại `@iconiclogs.com` đăng nhập bằng mật khẩu Viettel hi�
 không lưu trong cấu hình deploy hoặc Git.
 
 Cloudflare đã xác minh TLS và lời chào IMAP 993/SMTP 465 đến `mail.iconiclogs.com`,
-cùng khả năng tạo/đọc MIME trong Worker. Hai Durable Object bindings và secret
-`SESSION_KEY` đã cấu hình. Sent đang dùng IMAP APPEND, tự tìm thư mục `\\Sent`;
-cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật. Chưa nghiệm thu
-đăng nhập, gửi/nhận, Sent và file đính kèm bằng hộp thư thật.
+cùng khả năng tạo/đọc MIME trong Worker. Secret `SESSION_KEY` đã cấu hình. Sent đang dùng IMAP APPEND, tự tìm thư mục `\\Sent`;
+cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật. Đã xác minh đăng nhập và đọc Inbox thật bằng cs@iconiclogs.com ngày 04/11.
+Gửi/nhận vòng kín, Sent, file và restore thật vẫn cần chủ hộp thư kiểm thử.
 
 `iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Website/mail cũ và DNS/MX
 chưa thay đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
+
+## Mail mở rộng
+
+Tìm kiếm/lọc, thư mục, thao tác nhiều thư, sao, Thùng rác, reply-all, forward,
+Bcc, chữ ký/danh bạ và bản nháp tự lưu. `PersonalState` giữ dữ liệu cá nhân mã hóa,
+`BackupCoordinator` quản lý sao lưu và restore; migration v2 thêm hai DO này.
+Backup cần private R2 binding `BACKUP_BUCKET` và secret `BACKUP_KEY` (32 byte Base64,
+khác SESSION_KEY). Chỉ bật lịch sao lưu qua Cài đặt → Sao lưu của từng tài khoản.
+Tắt lịch thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
+không xóa nguồn. Giới hạn thư 10 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
+
+Review Claude đã chỉ ra lỗi preflight restore, sửa object backup hỏng và retry;
+đã bổ sung kiểm thử hồi quy. Sao lưu không tải lại MIME từ Viettel nếu UID cùng
+UIDVALIDITY đã có bản R2 xác minh được. Lỗi xác thực tạm dừng lịch; đăng nhập bằng
+mật khẩu mới và chọn cập nhật quyền sao lưu để tiếp tục. Restore uncertain cần
+đối chiếu thủ công; hiện chưa có chức năng ép khôi phục lại cùng nội dung/đích.

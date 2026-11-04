@@ -1,4 +1,10 @@
-import type { MailMessage, SessionInfo } from '../shared/contracts';
+import type {
+  MailMessage,
+  SessionInfo,
+  Folder,
+  MailPreferences,
+  SavedDraft,
+} from '../shared/contracts';
 import type { MailApi } from './api';
 
 const address = (name: string, email: string) => ({ name, address: email });
@@ -70,14 +76,125 @@ export function createDemoApi(): MailApi {
     csrfToken: 'synthetic-preview',
     expiresAt: Date.now() + 30 * 60_000,
   };
+  const extra = new Map<Folder, MailMessage[]>();
+  const folderData = (folder: Folder) =>
+    folder === 'inbox' ? inbox : folder === 'sent' ? sent : (extra.get(folder) ?? []);
+  let preferences: MailPreferences = {
+    displayName: 'Minh Anh',
+    signature: '',
+    contacts: [{ name: 'Hồ sơ ICONIC', address: 'document@iconiclogs.com' }],
+  };
+  const drafts = new Map<string, SavedDraft>();
   const deliveries = new Map<string, Awaited<ReturnType<MailApi['send']>>>();
   return {
+    folders: async () => [
+      {
+        id: 'inbox',
+        name: 'Hộp thư đến',
+        role: 'inbox',
+        unread: inbox.filter((x) => x.unread).length,
+        total: inbox.length,
+      },
+      { id: 'sent', name: 'Đã gửi', role: 'sent', total: sent.length },
+      { id: 'trash', name: 'Thùng rác', role: 'trash' },
+      { id: 'archive', name: 'Lưu trữ', role: 'archive' },
+      ...[...extra.keys()]
+        .filter((id) => id.startsWith('folder:'))
+        .map((id) => ({ id, name: decodeURIComponent(id.slice(7)) })),
+    ],
+    createFolder: async (name) => {
+      extra.set(`folder:${encodeURIComponent(name)}`, []);
+    },
+    action: async (folder, action) => {
+      const source = folderData(folder);
+      for (const item of source.filter((item) => action.ids.includes(item.id))) {
+        if (action.action === 'read') item.unread = false;
+        if (action.action === 'unread') item.unread = true;
+        if (action.action === 'star') item.starred = true;
+        if (action.action === 'unstar') item.starred = false;
+        if (action.action === 'move' && action.destination) {
+          if (!['inbox', 'sent'].includes(action.destination) && !extra.has(action.destination))
+            extra.set(action.destination, []);
+          folderData(action.destination).push(item);
+        }
+      }
+      if (action.action === 'move') {
+        for (let index = source.length - 1; index >= 0; index--)
+          if (action.ids.includes(source[index]!.id)) source.splice(index, 1);
+      }
+    },
+    quota: async () => ({ used: 267 * 1024 * 1024, limit: 500 * 1024 * 1024 }),
+    raw: async (_folder, id) =>
+      new Blob(['From: demo@example.test\r\nSubject: ' + id + '\r\n\r\nSynthetic mail'], {
+        type: 'message/rfc822',
+      }),
+    preferences: async () => structuredClone(preferences),
+    savePreferences: async (value) => {
+      preferences = structuredClone(value);
+      return preferences;
+    },
+    drafts: async () =>
+      [...drafts.values()].map(({ id, revision, updatedAt, draft }) => ({
+        id,
+        revision,
+        updatedAt,
+        subject: draft.subject,
+        to: draft.to,
+      })),
+    draft: async (id) => {
+      const value = drafts.get(id);
+      if (!value) throw Error('Không có bản nháp.');
+      return structuredClone(value);
+    },
+    saveDraft: async (id, draft, revision) => {
+      if ((drafts.get(id)?.revision ?? 0) !== revision) throw Error('Bản nháp đã thay đổi.');
+      const value = {
+        id,
+        draft: structuredClone(draft),
+        revision: revision + 1,
+        updatedAt: Date.now(),
+      };
+      drafts.set(id, value);
+      return structuredClone(value);
+    },
+    removeDraft: async (id, revision) => {
+      if ((drafts.get(id)?.revision ?? 0) === revision) drafts.delete(id);
+    },
+    backupStatus: async () => ({ enabled: false, run: null }),
+    backupConfigure: async () => {
+      throw Error('Bản mẫu không lưu backup thật.');
+    },
+    backupStart: async () => {
+      throw Error('Bản mẫu không sao lưu mail thật.');
+    },
+    backupStep: async () => {
+      throw Error('Bản mẫu không sao lưu mail thật.');
+    },
+    backupCatalog: async () => [],
+    backupDownload: async () => {
+      throw Error('Bản mẫu không có bản sao lưu.');
+    },
+    backupRestore: async () => {
+      throw Error('Bản mẫu không khôi phục mail thật.');
+    },
     session: async () => session,
     login: async () => {
       throw new Error('Demo does not accept credentials');
     },
-    messages: async (folder, page) => {
-      const data = folder === 'inbox' ? inbox : sent;
+    messages: async (folder, page, filter = {}) => {
+      const data = folderData(folder).filter(
+        (item) =>
+          (!filter.query ||
+            (item.subject + ' ' + item.text + ' ' + item.from.address)
+              .toLowerCase()
+              .includes(filter.query.toLowerCase())) &&
+          (!filter.unread || item.unread) &&
+          (!filter.starred || item.starred) &&
+          (!filter.attachments || item.hasAttachments) &&
+          (!filter.from || item.from.address.includes(filter.from)) &&
+          (!filter.after || item.date.slice(0, 10) >= filter.after) &&
+          (!filter.before || item.date.slice(0, 10) < filter.before),
+      );
       return {
         messages: data.slice((page - 1) * 20, page * 20),
         total: data.length,
@@ -85,7 +202,7 @@ export function createDemoApi(): MailApi {
       };
     },
     message: async (folder, id) => {
-      const message = (folder === 'inbox' ? inbox : sent).find((entry) => entry.id === id);
+      const message = folderData(folder).find((entry) => entry.id === id);
       if (!message) throw new Error('Không có thư mẫu này.');
       message.unread = false;
       return { ...message };

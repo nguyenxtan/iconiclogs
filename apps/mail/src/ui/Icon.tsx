@@ -1,5 +1,15 @@
 import type { CSSProperties } from 'react';
 const paths = {
+  search: 'm21 21-6-6M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',
+  star: 'm12 2 3 6 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1 3-6Z',
+  folder: 'M3 6h7l2 3h9v12H3V6Z',
+  trash: 'M3 6h18M8 6V3h8v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+  settings:
+    'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM9 3l-1 3-3 1-2 4 2 2v4l4 2 3-1 3 1 4-2v-4l2-2-2-4-3-1-1-3H9Z',
+  draft: 'M5 3h10l4 4v14H5V3Zm10 0v5h4M8 12h8m-8 4h5',
+  archive: 'M3 3h18v5H3V3Zm2 5v13h14V8M10 12h4',
+  forward: 'm15 4 7 7-7 7M22 11H10a8 8 0 0 0-8 8',
+
   collapse: 'M3 4h18v16H3V4Zm6 0v16m8-12-4 4 4 4',
   expand: 'M3 4h18v16H3V4Zm6 0v16m4-12 4 4-4 4',
   inbox: 'M4 4h16l2 10v6H2v-6L4 4Zm-2 10h6l2 3h4l2-3h6',

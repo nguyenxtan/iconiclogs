@@ -1,3 +1,6 @@
+import { PersonalState } from './storage/personal-object';
+import { BackupCoordinator, type BackupEnv } from './backup/objects';
+import { unwrapRpc } from './core/rpc';
 import type { Settings } from './config';
 import { configuration } from './config';
 import { createApp, type MailServices } from './http/api';
@@ -13,9 +16,11 @@ import { sha256 } from './core/session';
 import { ViettelProvider } from './providers/viettel';
 import { authenticatedCall } from './core/provider';
 import { SessionVault, MailboxCoordinator } from './storage/objects';
-export { SessionVault, MailboxCoordinator };
+export { SessionVault, MailboxCoordinator, PersonalState, BackupCoordinator };
 
-export interface Env extends Settings {
+export interface Env extends Settings, BackupEnv {
+  PERSONAL: DurableObjectNamespace<PersonalState>;
+  BACKUPS: DurableObjectNamespace<BackupCoordinator>;
   ASSETS: Fetcher;
   SESSIONS: DurableObjectNamespace<SessionVault>;
   MAILBOXES: DurableObjectNamespace<MailboxCoordinator>;
@@ -41,7 +46,82 @@ function services(env: Env): MailServices {
       () => vault(id).revoke(),
     );
   }
+  const personal = async (id: string) => {
+    const value = await credentials(id);
+    return { email: value.email, stub: env.PERSONAL.getByName(await sha256(value.email)) };
+  };
+  const backup = async (id: string) => {
+    const value = await credentials(id);
+    return { value, stub: env.BACKUPS.getByName(await sha256(value.email)) };
+  };
   return {
+    async folders(id) {
+      return withProvider(id, (client) => client.folders());
+    },
+    async createFolder(id, name) {
+      return withProvider(id, (client) => client.createFolder(name));
+    },
+    async action(id, folder, action) {
+      return withProvider(id, (client) => client.action(folder, action));
+    },
+    async quota(id) {
+      return withProvider(id, (client) => client.quota());
+    },
+    async raw(id, folder, messageId) {
+      return withProvider(id, (client) => client.raw(folder, messageId));
+    },
+    async preferences(id) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.preferences(email));
+    },
+    async savePreferences(id, value) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.savePreferences(email, value));
+    },
+    async drafts(id) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.drafts(email));
+    },
+    async draft(id, draftId) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.draft(email, draftId));
+    },
+    async saveDraft(id, draftId, value, revision) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.saveDraft(email, draftId, value, revision));
+    },
+    async removeDraft(id, draftId, revision) {
+      const { email, stub } = await personal(id);
+      return unwrapRpc(await stub.removeDraft(email, draftId, revision));
+    },
+    async backupStatus(id) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.status(value.email));
+    },
+    async backupConfigure(id, enabled) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.configure(value, enabled));
+    },
+    async backupStart(id) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.start(value));
+    },
+    async backupStep(id) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.step(value));
+    },
+    async backupCatalog(id) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.catalog(value.email));
+    },
+    async backupDownload(id, entry) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.download(value.email, entry));
+    },
+    async backupRestore(id, entry, folder, requestId) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.restore(value, entry, folder, requestId));
+    },
     async login(input, ip) {
       console.info('iconic-login-stage', 'rate-ip');
       const config = configuration(env);
@@ -80,7 +160,8 @@ function services(env: Env): MailServices {
     },
     session: (id) => vault(id).info(),
     logout: (id) => vault(id).revoke(),
-    list: async (id, folder, page) => withProvider(id, (client) => client.list(folder, page)),
+    list: async (id, folder, page, filter) =>
+      withProvider(id, (client) => client.list(folder, page, filter)),
     read: async (id, folder, messageId) =>
       withProvider(id, (client) => client.read(folder, messageId)),
     attachment: async (id, folder, messageId, part) =>

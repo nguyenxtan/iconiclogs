@@ -24,11 +24,17 @@
   },
   "durable_objects": {
     "bindings": [
+      { "name": "PERSONAL", "class_name": "PersonalState" },
+      { "name": "BACKUPS", "class_name": "BackupCoordinator" },
       { "name": "SESSIONS", "class_name": "SessionVault" },
       { "name": "MAILBOXES", "class_name": "MailboxCoordinator" },
     ],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionVault", "MailboxCoordinator"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SessionVault", "MailboxCoordinator"] },
+    { "tag": "v2", "new_sqlite_classes": ["PersonalState", "BackupCoordinator"] },
+  ],
+  "r2_buckets": [{ "binding": "BACKUP_BUCKET", "bucket_name": "iconiclogs-mail-backups" }],
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": false },

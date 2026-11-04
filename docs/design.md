@@ -44,10 +44,11 @@ kèm; gửi, lưu Sent và đăng xuất. Có loading, empty, lỗi, hết phiê
 SMTP chưa xác định. Bản mẫu chỉ tồn tại trong dev và được ghi nhãn rõ ràng.
 Không có đăng ký công khai hoặc tài khoản/mật khẩu mặc định.
 
-Composer chỉ giữ trong bộ nhớ tab và cảnh báo khi bỏ nội dung; không hứa phục
-hồi draft sau reload. Sidebar chỉ lưu lựa chọn thu gọn, không lưu mail/secrets.
-Calendar, contacts, SSO, AI, search nâng cao, drafts sync, move/delete và R2
-archive/restore để sau.
+Bản nháp, chữ ký và danh bạ mã hóa trong PersonalState theo mailbox, tồn tại
+qua tải lại trang/đăng nhập. Bản nháp là dữ liệu ICONIC Mail, chưa đồng bộ thư
+mục Drafts của Viettel. Sidebar chỉ lưu lựa chọn thu gọn trong trình duyệt.
+Calendar, SSO, AI, bộ lọc chạy ở máy chủ và trả lời khi vắng mặt để sau;
+cần xác minh API/quyền phía Viettel trước khi tích hợp.
 
 ## Kiến trúc
 
@@ -151,3 +152,44 @@ autocomplete, trạng thái chờ/lỗi và bản mẫu chỉ trong dev.
 Thực hiện trong `Login.tsx` và `login.css`; gỡ các rule login cũ khỏi stylesheet
 chung. Tái sử dụng ảnh đã tạo cho website, không thêm dependency. Kiểm tra bố cục
 desktop/mobile, khả năng truy cập, submit lỗi/chờ và E2E trước khi deploy Mail.
+
+## Mail mở rộng — 04/11/2026
+
+Chủ dự án yêu cầu triển khai các thao tác hằng ngày cùng backup. Login đổi sang
+ảnh cảng toàn màn hình, blur 4px và lớp phủ 15%; form kính trắng có viền/bóng tạo
+chiều sâu, responsive và focus rõ. Không thêm ảnh AI hoặc thư viện mới.
+
+Mail có tìm kiếm/từ khóa/người gửi/ngày/chưa đọc/sao/file, thư mục thực, tạo thư
+mục, chọn nhiều, gắn sao và chuyển thư (Thùng rác là MOVE, không xóa vĩnh viễn).
+MOVE chỉ chạy khi server hỗ trợ thao tác an toàn; UIDVALIDITY và UID được xác minh.
+Soạn thư thêm reply-all, forward kèm file, Bcc, tên hiển thị/tên gửi đúng tài khoản,
+chữ ký và gợi ý danh bạ. Inbox làm mới mỗi 60 giây khi tab đang hiển thị; quota
+chỉ hiện khi Viettel cung cấp. Bộ lọc đính kèm giới hạn 5.000 ứng viên và báo lỗi
+thu hẹp tìm kiếm nếu vượt, không trả kết quả thiếu âm thầm.
+
+PersonalState lưu draft theo revision, tối đa 20 bản / 50 MiB, chunks mã hóa AES-GCM
+trong transaction SQLite. Bản nháp cho phép người nhận nhập dở; send vẫn kiểm tra
+chặt. Trước SMTP phải lưu deliveryKey và guard unknown; khi kết quả không rõ hoặc
+partial, guard tồn tại qua mở lại bản nháp. Chỉ kết quả sent mới xóa bản nháp.
+
+BackupCoordinator giữ trạng thái/chỉ mục mã hóa; MIME nguyên gốc mã hóa trong R2
+riêng tư `iconiclogs-mail-backups`. BACKUP_KEY riêng SESSION_KEY, không nằm trong
+Git. Capture theo từng bước có thể tiếp tục; giữ ngày nhận/flags/file, kiểm tra
+SHA-256 và UIDVALIDITY. Thư >10 MiB khiến lượt partial, không được báo hoàn tất.
+Sao lưu hằng ngày chỉ bật bằng thao tác rõ ràng của từng chủ hộp thư; lúc đó mới
+lưu credential mã hóa độc lập với phiên 30 phút. Tắt thu hồi credential, giữ lịch sử.
+
+Catalog lọc theo ngày Việt Nam; tải EML và khôi phục thêm bản sao vào thư mục đã
+chọn sau xác nhận. Ledger request và content/target ghi trước APPEND; mất phản hồi
+hiển thị uncertain và không tự nhập lại. Không xóa nguồn/retention purge. Đây là
+bản sao ở Cloudflare, chưa có bản dự phòng ở nhà cung cấp độc lập hoặc snapshot
+mail-server. Mọi cloud/SMTP thật phải được kiểm chứng riêng với chủ hộp thư.
+
+Claude review read-only một lượt: đã sửa lỗi phân loại trước APPEND, sửa lại object
+R2 hỏng từ MIME gốc, seen UID index và batch tối đa 5 thư/2 MiB (một thư lớn riêng
+đến 10 MiB), retry có backoff tối đa 5 lần, bỏ Deleted/Draft/Recent khi restore.
+Mật khẩu bị từ chối tạm dừng lịch và hiện thao tác cập nhật quyền; xóa tài khoản
+khỏi allowlist thu hồi quyền sao lưu tự động. Bản nháp lost-response được đối
+chiếu nội dung ở revision kế tiếp, không ghi đè thay đổi của tab khác. Catalog
+giữ flags ở lần capture đầu; restore cùng nội dung/đích được chống lặp và chưa có
+thao tác ép tạo bản mới sau khi người dùng xóa bản đã restore.

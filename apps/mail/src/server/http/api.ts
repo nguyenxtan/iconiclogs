@@ -9,24 +9,48 @@ import type {
   SendDraft,
   SendResult,
   SessionInfo,
+  MailFolder,
+  MessageFilter,
+  MessageAction,
+  MailQuota,
+  MailPreferences,
+  DraftSummary,
+  SavedDraft,
 } from '../../shared/contracts';
+import type { BackupStatus, BackupItem } from '../../shared/backup';
+import { draftId, preferencesInput } from '../storage/personal';
 import type { MailAttachment } from '../core/provider';
 import { invalid, MailError, unauthorized } from '../core/errors';
-import { messageKey, sendInput } from '../core/validation';
+import { messageKey, sendInput, folderInput, filterInput, actionInput } from '../core/validation';
 
 export interface MailServices {
   login(input: unknown, ip: string): Promise<{ id: string; session: SessionInfo }>;
   session(id: string): Promise<SessionInfo | null>;
   logout(id: string): Promise<void>;
-  list(id: string, folder: Folder, page: number): Promise<MessagePage>;
+  list(id: string, folder: Folder, page: number, filter?: MessageFilter): Promise<MessagePage>;
   read(id: string, folder: Folder, messageId: string): Promise<MailMessage>;
   attachment(id: string, folder: Folder, messageId: string, part: number): Promise<MailAttachment>;
   send(id: string, draft: SendDraft, key: string): Promise<SendResult>;
+  folders(id: string): Promise<MailFolder[]>;
+  createFolder(id: string, name: string): Promise<void>;
+  action(id: string, folder: Folder, action: MessageAction): Promise<void>;
+  quota(id: string): Promise<MailQuota | null>;
+  raw(id: string, folder: Folder, messageId: string): Promise<MailAttachment>;
+  preferences(id: string): Promise<MailPreferences>;
+  savePreferences(id: string, value: MailPreferences): Promise<MailPreferences>;
+  drafts(id: string): Promise<DraftSummary[]>;
+  draft(id: string, draftId: string): Promise<SavedDraft>;
+  saveDraft(id: string, draftId: string, value: SendDraft, revision: number): Promise<SavedDraft>;
+  removeDraft(id: string, draftId: string, revision: number): Promise<void>;
+  backupStatus(id: string): Promise<BackupStatus>;
+  backupConfigure(id: string, enabled: boolean): Promise<BackupStatus>;
+  backupStart(id: string): Promise<BackupStatus>;
+  backupStep(id: string): Promise<BackupStatus>;
+  backupCatalog(id: string): Promise<BackupItem[]>;
+  backupDownload(id: string, entry: string): Promise<MailAttachment>;
+  backupRestore(id: string, entry: string, folder: Folder, requestId: string): Promise<unknown>;
 }
-const folderValue = (value = 'inbox'): Folder => {
-  if (value !== 'inbox' && value !== 'sent') throw invalid();
-  return value;
-};
+const folderValue = (value = 'inbox'): Folder => folderInput(value);
 const loopback = (url: string) =>
   ['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname);
 
@@ -60,6 +84,14 @@ export function createApp(services: MailServices, development = false) {
     }
     await next();
   });
+  app.use(
+    '/api/*',
+    bodyLimit({
+      maxSize: 11 * 1024 * 1024,
+      onError: (c) =>
+        c.json({ error: { code: 'TOO_LARGE', message: 'Dữ liệu vượt giới hạn.' } }, 413),
+    }),
+  );
   app.use(
     '/api/login',
     bodyLimit({
@@ -126,7 +158,28 @@ export function createApp(services: MailServices, development = false) {
     const folder = folderValue(c.req.query('folder'));
     const raw = c.req.query('page') || '1';
     if (!/^[1-9]\d{0,4}$/.test(raw)) throw invalid();
-    return c.json(await services.list(c.get('sessionId'), folder, Number(raw)));
+    return c.json(
+      await services.list(
+        c.get('sessionId'),
+        folder,
+        Number(raw),
+        filterInput({
+          ...c.req.query(),
+          ...Object.fromEntries(
+            ['unread', 'starred', 'attachments']
+              .filter((key) => c.req.query(key) !== undefined)
+              .map((key) => [
+                key,
+                c.req.query(key) === 'true'
+                  ? true
+                  : c.req.query(key) === 'false'
+                    ? false
+                    : c.req.query(key),
+              ]),
+          ),
+        }),
+      ),
+    );
   });
   app.get('/api/messages/:id', async (c) => {
     messageKey(c.req.param('id'));
@@ -165,6 +218,108 @@ export function createApp(services: MailServices, development = false) {
       throw invalid();
     }
     return c.json(await services.send(c.get('sessionId'), sendInput(body), key));
+  });
+
+  const json = async (c: {
+    req: { json(): Promise<unknown> };
+  }): Promise<Record<string, unknown>> => {
+    try {
+      const value = await c.req.json();
+      if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid();
+      return value as Record<string, unknown>;
+    } catch {
+      throw invalid();
+    }
+  };
+  app.get('/api/folders', async (c) => c.json(await services.folders(c.get('sessionId'))));
+  app.post('/api/folders', async (c) => {
+    const value = await json(c);
+    if (typeof value.name !== 'string') throw invalid();
+    await services.createFolder(c.get('sessionId'), value.name);
+    return c.json({ ok: true });
+  });
+  app.get('/api/quota', async (c) => c.json(await services.quota(c.get('sessionId'))));
+  app.post('/api/messages/actions', async (c) => {
+    const value = await json(c);
+    await services.action(c.get('sessionId'), folderInput(value.folder), actionInput(value));
+    return c.json({ ok: true });
+  });
+  app.get('/api/messages/:id/raw', async (c) => {
+    messageKey(c.req.param('id'));
+    const file = await services.raw(
+      c.get('sessionId'),
+      folderValue(c.req.query('folder')),
+      c.req.param('id'),
+    );
+    c.header('Content-Disposition', 'attachment; filename="message.eml"');
+    c.header('Content-Type', 'application/octet-stream');
+    return c.body(new Uint8Array(file.content).buffer);
+  });
+  app.get('/api/preferences', async (c) => c.json(await services.preferences(c.get('sessionId'))));
+  app.post('/api/preferences', async (c) =>
+    c.json(await services.savePreferences(c.get('sessionId'), preferencesInput(await json(c)))),
+  );
+  app.get('/api/drafts', async (c) => c.json(await services.drafts(c.get('sessionId'))));
+  app.get('/api/drafts/:id', async (c) =>
+    c.json(await services.draft(c.get('sessionId'), draftId(c.req.param('id')))),
+  );
+  app.post('/api/drafts/:id', async (c) => {
+    const value = await json(c);
+    if (!Number.isSafeInteger(value.revision) || Number(value.revision) < 0) throw invalid();
+    return c.json(
+      await services.saveDraft(
+        c.get('sessionId'),
+        draftId(c.req.param('id')),
+        value.draft as SendDraft,
+        Number(value.revision),
+      ),
+    );
+  });
+  app.delete('/api/drafts/:id', async (c) => {
+    const value = await json(c);
+    if (!Number.isSafeInteger(value.revision) || Number(value.revision) < 0) throw invalid();
+    await services.removeDraft(
+      c.get('sessionId'),
+      draftId(c.req.param('id')),
+      Number(value.revision),
+    );
+    return c.json({ ok: true });
+  });
+  app.get('/api/backups', async (c) => c.json(await services.backupStatus(c.get('sessionId'))));
+  app.post('/api/backups/configure', async (c) => {
+    const value = await json(c);
+    if (typeof value.enabled !== 'boolean') throw invalid();
+    return c.json(await services.backupConfigure(c.get('sessionId'), value.enabled));
+  });
+  app.post('/api/backups/start', async (c) =>
+    c.json(await services.backupStart(c.get('sessionId'))),
+  );
+  app.post('/api/backups/step', async (c) => c.json(await services.backupStep(c.get('sessionId'))));
+  app.get('/api/backups/catalog', async (c) =>
+    c.json(await services.backupCatalog(c.get('sessionId'))),
+  );
+  app.get('/api/backups/:id/download', async (c) => {
+    const file = await services.backupDownload(c.get('sessionId'), c.req.param('id'));
+    c.header('Content-Disposition', 'attachment; filename="backup.eml"');
+    c.header('Content-Type', 'application/octet-stream');
+    return c.body(new Uint8Array(file.content).buffer);
+  });
+  app.post('/api/backups/restore', async (c) => {
+    const value = await json(c);
+    if (
+      typeof value.id !== 'string' ||
+      typeof value.requestId !== 'string' ||
+      !/^[a-f0-9-]{36}$/i.test(value.requestId)
+    )
+      throw invalid();
+    return c.json(
+      await services.backupRestore(
+        c.get('sessionId'),
+        value.id,
+        folderInput(value.folder),
+        value.requestId,
+      ),
+    );
   });
   app.notFound((c) =>
     c.json({ error: { code: 'NOT_FOUND', message: 'Không tìm thấy chức năng.' } }, 404),

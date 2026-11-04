@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Folder, MailMessage } from '../shared/contracts';
+import type { Folder, MailMessage, MessageAction } from '../shared/contracts';
 import type { MailApi } from './api';
 import { Icon } from './Icon';
 import { safeEmailDocument } from './safeEmail';
@@ -11,6 +11,10 @@ export function Reader({
   folder,
   api,
   onReply,
+  onReplyAll,
+  onForward,
+  onAction,
+  actionBusy,
   onBack,
   onError,
   onRetry,
@@ -21,6 +25,10 @@ export function Reader({
   folder: Folder;
   api: MailApi;
   onReply(message: MailMessage): void;
+  onReplyAll?(message: MailMessage): void;
+  onForward?(message: MailMessage): void;
+  onAction?(action: MessageAction): void;
+  actionBusy?: boolean;
   onBack(): void;
   onError(error: unknown): void;
   onRetry(): void;
@@ -48,6 +56,19 @@ export function Reader({
       setDownloading(null);
     }
   }
+  async function rawDownload() {
+    if (!message) return;
+    try {
+      const url = URL.createObjectURL(await api.raw(folder, message.id));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'message.eml';
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+    } catch (error) {
+      onError(error);
+    }
+  }
   return (
     <section className="reader" aria-label="Nội dung thư" aria-busy={busy}>
       <div className="reader-toolbar">
@@ -68,6 +89,82 @@ export function Reader({
           </button>
         )}
       </div>
+      {message && (
+        <div className="reader-actions" aria-label="Thao tác thư">
+          {onReplyAll && (
+            <button className="button subtle" onClick={() => onReplyAll(message)}>
+              <Icon name="reply" size={15} />
+              Trả lời tất cả
+            </button>
+          )}
+          {onForward && (
+            <button className="button subtle" onClick={() => onForward(message)}>
+              <Icon name="forward" size={15} />
+              Chuyển tiếp
+            </button>
+          )}
+          <button
+            className="icon-button"
+            aria-label="Tải thư gốc EML"
+            title="Tải thư gốc EML"
+            onClick={() => void rawDownload()}
+          >
+            <Icon name="download" size={17} />
+          </button>
+          {onAction && (
+            <>
+              <button
+                className="icon-button"
+                disabled={actionBusy}
+                aria-label={message.starred ? 'Bỏ sao thư' : 'Gắn sao thư'}
+                title={message.starred ? 'Bỏ sao' : 'Gắn sao'}
+                aria-pressed={!!message.starred}
+                onClick={() =>
+                  onAction({ ids: [message.id], action: message.starred ? 'unstar' : 'star' })
+                }
+              >
+                <Icon name="star" size={17} />
+              </button>
+              <button
+                className="button subtle"
+                disabled={actionBusy}
+                onClick={() =>
+                  onAction({ ids: [message.id], action: message.unread ? 'read' : 'unread' })
+                }
+              >
+                {message.unread ? 'Đánh dấu đã đọc' : 'Đánh dấu chưa đọc'}
+              </button>
+              {folder !== 'archive' && folder !== 'trash' && (
+                <button
+                  className="icon-button"
+                  disabled={actionBusy}
+                  aria-label="Lưu trữ thư"
+                  title="Lưu trữ thư"
+                  onClick={() =>
+                    onAction({ ids: [message.id], action: 'move', destination: 'archive' })
+                  }
+                >
+                  <Icon name="archive" size={17} />
+                </button>
+              )}
+              <button
+                className="button subtle"
+                disabled={actionBusy}
+                onClick={() =>
+                  onAction({
+                    ids: [message.id],
+                    action: 'move',
+                    destination: folder === 'trash' ? 'inbox' : 'trash',
+                  })
+                }
+              >
+                <Icon name={folder === 'trash' ? 'inbox' : 'trash'} size={17} />
+                {folder === 'trash' ? 'Khôi phục về Hộp thư đến' : 'Thùng rác'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {busy ? (
         <div className="pane-state">
           <span className="spinner" />
@@ -92,7 +189,7 @@ export function Reader({
       ) : (
         <article className="mail-article">
           <div className="mail-subject">
-            <span className="eyebrow">{folder === 'inbox' ? 'THƯ ĐẾN' : 'THƯ ĐÃ GỬI'}</span>
+            <span className="eyebrow">{folder === 'sent' ? 'THƯ ĐÃ GỬI' : 'NỘI DUNG THƯ'}</span>
             <h2>{message.subject || '(Không có tiêu đề)'}</h2>
           </div>
           <div className="mail-sender">
@@ -104,6 +201,9 @@ export function Reader({
               <span>{message.from.address}</span>
               <span className="mail-recipients">
                 Đến: {message.to.map((recipient) => recipient.address).join(', ')}
+                {message.cc?.length ? (
+                  <span>Cc: {message.cc.map((recipient) => recipient.address).join(', ')}</span>
+                ) : null}
               </span>
             </div>
             <time dateTime={message.date}>

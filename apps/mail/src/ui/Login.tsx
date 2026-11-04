@@ -24,6 +24,18 @@ export function Login({
   }
   return (
     <div className="login-page">
+      <div className="login-backdrop" aria-hidden="true">
+        <picture>
+          <source media="(max-width: 640px)" srcSet="/visuals/login-port.webp" />
+          <img
+            src="/visuals/login-port-wide.webp"
+            alt=""
+            width="1912"
+            height="823"
+            fetchPriority="high"
+          />
+        </picture>
+      </div>
       <header className="login-header">
         <a
           className="login-brand"
@@ -41,6 +53,15 @@ export function Login({
         </a>
       </header>
       <main className="login-main">
+        <div className="login-scene-copy">
+          <p>ICONIC LOGISTICS VIỆT NAM</p>
+          <h2>
+            Kết nối hành trình.
+            <br />
+            Vững bước giao thương.
+          </h2>
+          <span>Mỗi kết nối, một hành trình vươn xa.</span>
+        </div>
         <div className="login-card">
           <section className="login-form-panel" aria-labelledby="login-title">
             <div className="login-content">
@@ -108,23 +129,6 @@ export function Login({
               )}
             </div>
           </section>
-          <aside className="login-visual" aria-label="ICONIC Logistics">
-            <img
-              src="/visuals/login-port.webp"
-              alt="Minh họa tàu container và hoạt động tại cảng biển"
-              width="720"
-              height="900"
-              fetchPriority="high"
-            />
-            <div className="login-visual-copy">
-              <p>ICONIC LOGISTICS VIỆT NAM</p>
-              <h2>
-                Kết nối hành trình.
-                <br />
-                Vững bước giao thương.
-              </h2>
-            </div>
-          </aside>
         </div>
       </main>
       <footer className="login-footer">

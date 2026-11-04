@@ -1,5 +1,9 @@
 import type {
   Folder,
+  MailFolder,
+  MailQuota,
+  MessageAction,
+  MessageFilter,
   MailMessage,
   MessagePage,
   SendDraft,
@@ -29,7 +33,12 @@ export interface MailAttachment {
 }
 export interface MailProvider {
   authenticate(): Promise<void>;
-  list(folder: Folder, page: number): Promise<MessagePage>;
+  folders(): Promise<MailFolder[]>;
+  createFolder(name: string): Promise<void>;
+  list(folder: Folder, page: number, filter?: MessageFilter): Promise<MessagePage>;
+  action(folder: Folder, action: MessageAction): Promise<void>;
+  quota(): Promise<MailQuota | null>;
+  raw(folder: Folder, id: string): Promise<MailAttachment>;
   read(folder: Folder, id: string): Promise<MailMessage>;
   attachment(folder: Folder, id: string, attachmentId: number): Promise<MailAttachment>;
   send(draft: SendDraft, messageId: string): Promise<SendResult>;

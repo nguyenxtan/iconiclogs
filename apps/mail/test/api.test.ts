@@ -91,3 +91,50 @@ describe('HTTP mail boundary', () => {
     expect(large.status).toBe(413);
   });
 });
+
+it('guards drafts, settings and backups with the same origin/session/CSRF boundary', async () => {
+  const { app } = setup();
+  for (const path of [
+    '/api/drafts',
+    '/api/preferences',
+    '/api/backups/start',
+    '/api/messages/actions',
+  ]) {
+    expect(
+      (
+        await app.request('https://mail.example.com' + path, {
+          method: 'POST',
+          headers: { ...auth, Origin: 'https://mail.example.com' },
+          body: '{}',
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await app.request('https://mail.example.com' + path, {
+          method: 'POST',
+          headers: { ...auth, Origin: 'https://evil.example', 'X-CSRF-Token': session.csrfToken },
+          body: '{}',
+        })
+      ).status,
+    ).toBe(403);
+  }
+});
+it('serves raw mail as a download only after resolving the authenticated session', async () => {
+  const { app, services } = setup();
+  Object.assign(services, {
+    raw: vi.fn(async () => ({
+      name: 'mail.eml',
+      type: 'message/rfc822',
+      content: new TextEncoder().encode('MIME'),
+    })),
+  });
+  const response = await app.request(
+    'https://mail.example.com/api/messages/123.42/raw?folder=inbox',
+    { headers: auth },
+  );
+  expect(response.status).toBe(200);
+  expect(response.headers.get('Content-Disposition')).toContain('attachment');
+  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  expect(await response.text()).toBe('MIME');
+});

@@ -75,3 +75,18 @@ it('reports definitive SMTP rejection and partial recipient acceptance separatel
   });
   expect(append).toHaveBeenCalledTimes(1);
 });
+
+it('includes Bcc only in the SMTP envelope and definitive rejection recipients', async () => {
+  const send = vi
+    .fn()
+    .mockResolvedValueOnce({ accepted: ['to@example.test', 'secret@example.test'], rejected: [] })
+    .mockRejectedValueOnce(Object.assign(Error('rejected'), { responseCode: 550 }));
+  smtp(send);
+  const privateDraft = { ...draft, bcc: ['secret@example.test'] };
+  await deliverMessage(credentials, config, privateDraft, '<bcc@iconiclogs.com>');
+  expect(send.mock.calls[0]![0].envelope.to).toEqual(['to@example.test', 'secret@example.test']);
+  expect(send.mock.calls[0]![0].raw.toString()).not.toContain('secret@example.test');
+  expect(
+    (await deliverMessage(credentials, config, privateDraft, '<bcc-fail@iconiclogs.com>')).rejected,
+  ).toEqual(['to@example.test', 'secret@example.test']);
+});

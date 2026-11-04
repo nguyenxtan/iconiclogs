@@ -20,9 +20,12 @@ export async function parseMessage(raw: Buffer): Promise<ParsedMail> {
 
 export function messageBody(
   parsed: ParsedMail,
-): Pick<MailMessage, 'text' | 'html' | 'attachments' | 'messageId'> {
+): Pick<MailMessage, 'text' | 'html' | 'attachments' | 'messageId' | 'cc'> {
   return {
     text: parsed.text || '',
+    cc: (Array.isArray(parsed.cc) ? parsed.cc : parsed.cc ? [parsed.cc] : []).flatMap((group) =>
+      group.value.map((value) => ({ address: value.address || '', name: value.name || '' })),
+    ),
     ...(parsed.html ? { html: parsed.html } : {}),
     messageId: parsed.messageId,
     attachments: parsed.attachments.map((file, id) => ({
@@ -45,7 +48,7 @@ export async function composeMessage(
     newline: 'windows',
   });
   const info = await composer.sendMail({
-    from: email,
+    from: { address: email, name: draft.displayName || '' },
     to: draft.to,
     cc: draft.cc,
     subject: draft.subject,
