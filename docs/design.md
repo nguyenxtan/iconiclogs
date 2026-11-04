@@ -140,3 +140,14 @@ nhập lúc đăng nhập. Cloudflare đã kiểm tra TLS/lời chào IMAP 993, 
 Sent mặc định APPEND vào thư mục tự nhận diện; chưa nghiệm thu tài khoản thật,
 gửi/nhận, Sent hoặc file đính kèm. Đã sửa lỗi socket IMAP phát sự kiện ngoài Promise
 và thêm regression test. Custom domains, DNS/MX và các Worker cũ không thay đổi.
+
+## Mail login — 04/11/2026
+
+Thay màn hình đăng nhập bằng nền xám mát, khung trắng có giới hạn chiều rộng,
+form bên trái và ảnh cảng tông mát bên phải. Logo ngang ghép mark gốc với wordmark
+gốc; tiêu đề dùng Be Vietnam Pro. Mobile tập trung vào form. Giữ luồng đăng nhập,
+autocomplete, trạng thái chờ/lỗi và bản mẫu chỉ trong dev.
+
+Thực hiện trong `Login.tsx` và `login.css`; gỡ các rule login cũ khỏi stylesheet
+chung. Tái sử dụng ảnh đã tạo cho website, không thêm dependency. Kiểm tra bố cục
+desktop/mobile, khả năng truy cập, submit lỗi/chờ và E2E trước khi deploy Mail.

@@ -140,87 +140,7 @@ svg {
   font-size: 12px;
 }
 
-/* Entry */
-.login-page {
-  min-height: 100dvh;
-  display: grid;
-  grid-template-columns: 49% 51%;
-}
-.login-story {
-  position: relative;
-  overflow: hidden;
-  min-height: 740px;
-  background: #343c3d;
-  color: white;
-}
-.port-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  object-position: 80% center;
-}
-.story-shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(25, 25, 20, 0.08) 0%,
-    rgba(22, 27, 26, 0.18) 30%,
-    rgba(23, 24, 22, 0.83) 100%
-  );
-}
-.story-copy {
-  position: absolute;
-  left: 9%;
-  right: 7%;
-  bottom: 16%;
-}
-.story-copy .eyebrow {
-  color: #e5d0ba;
-  font-size: 12px;
-  letter-spacing: 2.5px;
-}
-.story-copy h1 {
-  font-family: var(--font-editorial);
-  font-weight: 400;
-  font-size: clamp(35px, 3.4vw, 57px);
-  letter-spacing: -0.8px;
-  line-height: 1.22;
-  margin: 25px 0 22px;
-}
-.story-copy p {
-  color: #e3e0d9;
-  font-size: 13px;
-  line-height: 1.9;
-  font-weight: 400;
-}
-.story-rule {
-  width: 49px;
-  height: 2px;
-  background: #c89d78;
-  margin-top: 28px;
-}
-.story-caption {
-  position: absolute;
-  bottom: 37px;
-  left: 9%;
-  letter-spacing: 2.8px;
-  font-size: 12px;
-  color: #d0cbc2;
-}
-.login-panel {
-  background: var(--canvas);
-  display: flex;
-  flex-direction: column;
-  padding: 44px 7% 29px;
-}
-.login-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
+/* Shared product mark */
 .product-wordmark {
   font-weight: 700;
   font-size: 14px;
@@ -231,122 +151,6 @@ svg {
   color: #b7a595;
   margin: 0 8px;
   font-weight: 400;
-}
-.login-top a {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.login-top a:hover {
-  color: var(--brand);
-}
-.login-form-wrap {
-  width: 100%;
-  max-width: 370px;
-  margin: auto;
-  padding: 60px 0;
-}
-.login-emblem {
-  width: 51px;
-  height: 51px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #deccc0;
-  border-radius: 11px;
-  color: var(--brand);
-  margin-bottom: 30px;
-  background: rgba(255, 255, 255, 0.5);
-}
-.login-form-wrap > .eyebrow {
-  color: var(--brand);
-  font-size: 12px;
-}
-.login-form-wrap h2 {
-  font-family: var(--font-editorial);
-  font-size: 37px;
-  font-weight: 400;
-  letter-spacing: -0.8px;
-  margin: 11px 0 12px;
-  line-height: 1.2;
-}
-.login-intro {
-  font-size: 12px;
-  line-height: 1.9;
-  color: var(--muted);
-  margin: 0 0 30px;
-}
-.login-form {
-  display: flex;
-  flex-direction: column;
-}
-.login-form label {
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 9px;
-}
-.login-form input {
-  border: 1px solid #dcd6ce;
-  border-radius: 4px;
-  background: white;
-  height: 47px;
-  padding: 0 14px;
-  margin-bottom: 21px;
-  color: var(--ink);
-}
-.login-form input::placeholder {
-  color: #8e877f;
-  font-size: 12px;
-}
-.login-submit {
-  justify-content: space-between;
-  width: 100%;
-  height: 47px;
-  margin-top: 5px;
-}
-.login-form .notice {
-  margin-bottom: 14px;
-}
-.login-security {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
-  margin-top: 17px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.demo-entry {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  padding-top: 26px;
-  border-top: 1px solid var(--line);
-  margin-top: 29px;
-}
-.demo-entry > span {
-  font-size: 12px;
-  color: var(--muted);
-}
-.demo-entry button {
-  background: transparent;
-  color: var(--brand);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  padding: 5px;
-}
-.login-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.7;
 }
 
 /* Workspace */
@@ -1185,10 +989,6 @@ svg {
   .mail-article {
     padding: 42px 50px;
   }
-  .login-panel {
-    padding-left: 10%;
-    padding-right: 10%;
-  }
 }
 @media (max-width: 1150px) {
   .mail-shell {
@@ -1227,16 +1027,6 @@ svg {
   .reader-toolbar > span {
     font-size: 7px;
     letter-spacing: 0.8px;
-  }
-  .login-panel {
-    padding-left: 9%;
-    padding-right: 9%;
-  }
-  .login-top a {
-    font-size: 12px;
-  }
-  .login-top {
-    gap: 10px;
   }
   .product-wordmark {
     font-size: 12px;
@@ -1294,53 +1084,8 @@ svg {
   .account strong {
     font-size: 12px;
   }
-  .login-story {
-    min-height: 700px;
-  }
-  .login-panel {
-    padding: 32px 10%;
-  }
-  .login-top a {
-    display: none;
-  }
-  .login-form-wrap h2 {
-    font-size: 32px;
-  }
-  .story-copy h1 {
-    font-size: 38px;
-  }
-  .login-footer {
-    flex-direction: column;
-    gap: 3px;
-  }
 }
 @media (max-width: 760px) {
-  .login-page {
-    grid-template-columns: 1fr;
-    min-height: 100dvh;
-  }
-  .login-story {
-    display: none;
-  }
-  .login-panel {
-    padding: 28px 26px 22px;
-    min-height: 100dvh;
-  }
-  .login-top a {
-    display: inline-flex;
-    font-size: 12px;
-  }
-  .login-form-wrap {
-    padding: 50px 0;
-    max-width: 390px;
-  }
-  .login-form-wrap h2 {
-    font-size: 38px;
-  }
-  .login-footer {
-    flex-direction: row;
-    font-size: 8px;
-  }
   .mail-shell,
   .mail-shell.is-demo {
     display: flex;
@@ -1579,12 +1324,6 @@ svg {
   }
 }
 @media (max-width: 380px) {
-  .login-form-wrap h2 {
-    font-size: 33px;
-  }
-  .login-footer {
-    flex-direction: column;
-  }
   .reader-toolbar > span {
     display: none;
   }
@@ -1634,7 +1373,6 @@ svg {
   left: 0;
   top: 0;
 }
-.login-top .login-brand,
 .mobile-brand {
   display: inline-flex;
   align-items: center;
@@ -1740,33 +1478,10 @@ svg {
   .sidebar-toggle {
     width: 25px;
   }
-  .login-top .brand-logo-full {
-    --logo-width: 118px;
-  }
-  .login-top .login-brand {
-    gap: 12px;
-  }
-  .login-top .brand-mail-label {
-    padding-left: 12px;
-    font-size: 12px;
-  }
 }
 @media (max-width: 760px) {
   .sidebar-brand-row {
     display: none;
-  }
-  .login-top .brand-logo-full {
-    --logo-width: 110px;
-  }
-  .login-top .login-brand {
-    gap: 12px;
-  }
-  .login-top .brand-mail-label {
-    padding-left: 12px;
-    font-size: 12px;
-  }
-  .login-top > a:not(.login-brand) {
-    font-size: 12px;
   }
   .mobile-brand {
     gap: 15px;
@@ -1777,11 +1492,6 @@ svg {
   .mobile-brand .brand-mail-label {
     padding-left: 14px;
     font-size: 12px;
-  }
-}
-@media (max-width: 380px) {
-  .login-top > a:not(.login-brand) {
-    display: none;
   }
 }
 
