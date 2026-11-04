@@ -123,3 +123,18 @@ it('preserves only validated signature descriptors and refuses client HTML or in
   ])
     expect(() => sendInput({ ...draft, signature })).toThrow();
 });
+it('preserves bounded typed quote content while rejecting browser-supplied HTML', () => {
+  const quote = {
+    kind: 'reply',
+    from: { name: 'Sender', address: 'sender@example.com' },
+    to: [],
+    date: '2026-11-04T02:00:00Z',
+    subject: 'Original',
+    text: 'Original\n> literal',
+  };
+  expect(sendInput({ ...draft, quote })).toMatchObject({ quote });
+  expect(() => sendInput({ ...draft, quote: { ...quote, text: 'é'.repeat(65537) } })).toThrow(
+    expect.objectContaining({ code: 'QUOTE_TOO_LARGE', status: 413 }),
+  );
+  expect(() => sendInput({ ...draft, quote: { ...quote, html: '<script>x</script>' } })).toThrow();
+});

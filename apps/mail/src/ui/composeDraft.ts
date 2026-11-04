@@ -14,9 +14,6 @@ export function splitRecipients(value: string): string[] {
     .map((part) => part.trim())
     .filter(Boolean);
 }
-function addressLabel(value: MailAddress): string {
-  return value.name ? `${value.name} <${value.address}>` : value.address;
-}
 function originalText(message: MailMessage): string {
   if (message.text) return message.text.replace(/\r\n?/g, '\n');
   if (!message.html || typeof DOMParser === 'undefined') return '';
@@ -62,12 +59,17 @@ export function initialComposeDraft({
     displayName: preferences?.displayName ?? '',
   };
   if (!reply) return draft;
-  const body = originalText(reply);
-  const date = new Date(reply.date);
-  const when = Number.isNaN(date.getTime()) ? reply.date : date.toLocaleString('vi-VN');
+  draft.quote = {
+    kind: mode === 'forward' ? 'forward' : 'reply',
+    from: { ...reply.from },
+    to: reply.to.map((address) => ({ ...address })),
+    ...(reply.cc?.length ? { cc: reply.cc.map((address) => ({ ...address })) } : {}),
+    date: reply.date,
+    subject: reply.subject,
+    text: originalText(reply),
+  };
   if (mode === 'forward') {
     draft.subject = /^fw(?:d)?:/i.test(reply.subject) ? reply.subject : `Fwd: ${reply.subject}`;
-    draft.text += `\n\n---------- Thư được chuyển tiếp ----------\nTừ: ${addressLabel(reply.from)}\nNgày: ${when}\nTiêu đề: ${reply.subject}\nĐến: ${reply.to.map(addressLabel).join(', ')}${reply.cc?.length ? `\nCc: ${reply.cc.map(addressLabel).join(', ')}` : ''}\n\n${body}`;
     return draft;
   }
   const seen = new Set([email.trim().toLowerCase()]);
@@ -84,10 +86,6 @@ export function initialComposeDraft({
   );
   draft.cc = mode === 'replyAll' ? unique(reply.cc ?? []) : [];
   draft.subject = /^re:/i.test(reply.subject) ? reply.subject : `Re: ${reply.subject}`;
-  draft.text += `\n\nVào ${when}, ${addressLabel(reply.from)} đã viết:\n${body
-    .split('\n')
-    .map((line) => `> ${line}`)
-    .join('\n')}`;
   if (reply.messageId) draft.inReplyTo = reply.messageId;
   return draft;
 }
@@ -167,7 +165,7 @@ export function currentDraftSignature(
     initial.displayName ?? '',
     initial.signature.jobTitle,
   ).text;
-  const originalBoundary = signatureQuoteBoundary(initial.text);
+  const originalBoundary = initial.quote ? undefined : signatureQuoteBoundary(initial.text);
   let authored = text;
   if (originalBoundary) {
     const originalTail = initial.text.slice(originalBoundary.offset);

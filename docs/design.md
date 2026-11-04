@@ -215,3 +215,16 @@ thư, bộ lọc, soạn/trả lời/chuyển tiếp/file, draft qua hết phiê
 Chủ dự án cho phép thử với Gmail cá nhân được chỉ định; chỉ dùng thư/file tổng hợp có mã
 ICONIC-QA, không đưa thư khách hàng sang Gmail. Nghiệm thu thật được ghi riêng,
 không coi kiểm thử UI bằng fixture là bằng chứng delivery Viettel.
+
+## Reply sạch và giữ ngữ cảnh — 04/11/2026
+
+Reply/reply-all/forward mới lưu phần lịch sử trong trường quote riêng. Ô soạn chỉ
+có nội dung mới và chữ ký; khối “Nội dung thư trước” thu gọn/mở rộng hiển thị người
+gửi, ngày, tiêu đề, người nhận và nguyên văn nội dung. Không tự thêm dấu `>`;
+ký tự có sẵn trong thư gốc được giữ. Có thể chủ động bỏ phần trích dẫn mà không
+đụng thư nguồn. Draft mã hóa lưu cả quote; các draft cũ giữ nguyên định dạng.
+
+Server xác minh metadata/giới hạn 128 KiB, tạo HTML escaped thành panel sau chữ
+ký và text/plain với tiêu đề phân tách rõ. In-Reply-To/To/Cc/Bcc/file và chống gửi
+trùng giữ nguyên. Review chéo và UI tests bao gồm mở/đóng khối, draft reload,
+remove cancel/confirm, recipient dedup, HTML độc hại/literal >, file và chữ ký.

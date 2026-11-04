@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import type { MailMessage } from '../src/shared/contracts';
+import type { MailMessage, SendDraft } from '../src/shared/contracts';
 import {
   initialComposeDraft,
   forwardAttachments,
@@ -28,7 +28,7 @@ const original: MailMessage = {
   messageId: '<original@example.com>',
 };
 describe('daily compose initialization', () => {
-  it('reply-all excludes self and duplicates across To and Cc while quoting every original line', () => {
+  it('reply-all excludes self and duplicates while preserving original context separately', () => {
     const draft = initialComposeDraft({
       reply: original,
       mode: 'replyAll',
@@ -38,8 +38,9 @@ describe('daily compose initialization', () => {
     expect(draft.to).toEqual(['an@example.com', 'b@example.com']);
     expect(draft.cc).toEqual(['c@example.com']);
     expect(draft.inReplyTo).toBe('<original@example.com>');
-    expect(draft.text).toContain('> Line one\n> \n> Line three');
-    expect(draft.text.indexOf('Regards\nMe')).toBeLessThan(draft.text.indexOf('> Line one'));
+    expect(draft.text).toBe('\n\n-- \nRegards\nMe');
+    expect(draft.quote?.text).toBe('Line one\n\nLine three');
+    expect(draft.quote?.from).toEqual(original.from);
     expect(draft.displayName).toBe('My Name');
   });
   it('replying to own sent mail targets other original recipients and never self', () => {
@@ -60,9 +61,14 @@ describe('daily compose initialization', () => {
     expect(draft.cc).toEqual([]);
     expect(draft.inReplyTo).toBeUndefined();
     expect(draft.subject).toBe('Fwd: Booking');
-    expect(draft.text).toContain('Từ: An <an@example.com>');
-    expect(draft.text).toContain('Tiêu đề: Booking');
-    expect(draft.text).toContain('Line one\n\nLine three');
+    expect(draft.quote).toMatchObject({
+      kind: 'forward',
+      from: original.from,
+      to: original.to,
+      subject: 'Booking',
+      text: 'Line one\n\nLine three',
+    });
+    expect(draft.text).not.toContain('Line one');
   });
   it('HTML-only quotes retain readable text without script/style or fetching remote images', () => {
     const draft = initialComposeDraft({
@@ -73,10 +79,11 @@ describe('daily compose initialization', () => {
       },
       email: 'me@example.com',
     });
-    expect(draft.text).toContain('> Hello & welcome');
-    expect(draft.text).toContain('> Next\n> line');
-    expect(draft.text).not.toContain('secret-');
-    expect(draft.text).not.toContain('tracker');
+    expect(draft.quote?.text).toContain('Hello & welcome');
+    expect(draft.quote?.text).toContain('Next\nline');
+    expect(draft.quote?.text).not.toContain('secret-');
+    expect(draft.quote?.text).not.toContain('tracker');
+    expect(draft.text).not.toContain('> Hello');
   });
   it('contact completion preserves earlier manually entered recipients', () => {
     expect(
@@ -145,7 +152,8 @@ it('seeds one company signature before quotes and tracks it when typing before t
   });
   expect(draft.signature).toEqual({ jobTitle: '', offset: 2 });
   expect(draft.text).toContain('ICONIC Logistics');
-  expect(draft.text.indexOf('ICONIC Logistics')).toBeLessThan(draft.text.indexOf('> Line one'));
+  expect(draft.quote?.text).toBe(original.text);
+  expect(draft.text).not.toContain('> Line one');
   expect(currentDraftSignature(draft, 'Hello\n' + draft.text, 'owner@iconiclogs.com')).toEqual({
     jobTitle: '',
     offset: 8,
@@ -170,18 +178,33 @@ it('seeds one company signature before quotes and tracks it when typing before t
   ).toBe('');
 });
 
+function legacyQuote(draft: SendDraft): SendDraft {
+  const { quote, ...legacy } = draft;
+  if (!quote) return legacy;
+  legacy.text +=
+    quote.kind === 'forward'
+      ? `\n\n---------- Thư được chuyển tiếp ----------\nTừ: old@example.com\n\n${quote.text}`
+      : `\n\nVào 04/11/2026, old@example.com đã viết:\n${quote.text
+          .split('\n')
+          .map((line) => `> ${line}`)
+          .join('\n')}`;
+  return legacy;
+}
+
 it('never promotes an old forwarded signature when the current company block was removed', async () => {
   const { companySignature } = await import('../src/shared/signature');
   const { currentDraftSignature } = await import('../src/ui/composeDraft');
   const email = 'owner@iconiclogs.com',
     name = 'An';
   const block = companySignature(email, name, '').text;
-  const initial = initialComposeDraft({
-    reply: { ...original, from: { name, address: email }, text: 'Old body\n\n' + block },
-    mode: 'forward',
-    email,
-    preferences: { displayName: name, signature: '', contacts: [] },
-  });
+  const initial = legacyQuote(
+    initialComposeDraft({
+      reply: { ...original, from: { name, address: email }, text: 'Old body\n\n' + block },
+      mode: 'forward',
+      email,
+      preferences: { displayName: name, signature: '', contacts: [] },
+    }),
+  );
   expect(currentDraftSignature(initial, initial.text.replace(block, ''), email)).toBeUndefined();
   // An identical signature in the untouched original must not disable the new current block.
   expect(currentDraftSignature(initial, 'Hello\n' + initial.text, email)).toEqual({
@@ -203,12 +226,14 @@ it('bounds current signature matching before a reply header even if quoted text 
   const { currentDraftSignature } = await import('../src/ui/composeDraft');
   const email = 'owner@iconiclogs.com';
   const block = companySignature(email, 'An', '').text;
-  const initial = initialComposeDraft({
-    reply: { ...original, text: 'Original\n\n' + block },
-    mode: 'reply',
-    email,
-    preferences: { displayName: 'An', signature: '', contacts: [] },
-  });
+  const initial = legacyQuote(
+    initialComposeDraft({
+      reply: { ...original, text: 'Original\n\n' + block },
+      mode: 'reply',
+      email,
+      preferences: { displayName: 'An', signature: '', contacts: [] },
+    }),
+  );
   const removed = initial.text.replace(block, '').replace(/^> ?/gm, '');
   expect(currentDraftSignature(initial, removed, email)).toBeUndefined();
 });
@@ -219,15 +244,17 @@ it('falls back when an edited outer forward divider leaves a nested divider afte
   const email = 'owner@iconiclogs.com',
     displayName = 'An';
   const block = companySignature(email, displayName, '').text;
-  const initial = initialComposeDraft({
-    reply: {
-      ...original,
-      text: 'Old body\n\n' + block + '\n\n---------- Thư được chuyển tiếp ----------\nOlder body',
-    },
-    mode: 'forward',
-    email,
-    preferences: { displayName, signature: '', contacts: [] },
-  });
+  const initial = legacyQuote(
+    initialComposeDraft({
+      reply: {
+        ...original,
+        text: 'Old body\n\n' + block + '\n\n---------- Thư được chuyển tiếp ----------\nOlder body',
+      },
+      mode: 'forward',
+      email,
+      preferences: { displayName, signature: '', contacts: [] },
+    }),
+  );
   const edited = initial.text
     .replace(block, '')
     .replace('---------- Thư được chuyển tiếp ----------', '[original message]');
@@ -236,12 +263,14 @@ it('falls back when an edited outer forward divider leaves a nested divider afte
 it('requires the exact original quoted tail once at the end before formatting the current signature', async () => {
   const { currentDraftSignature } = await import('../src/ui/composeDraft');
   const email = 'owner@iconiclogs.com';
-  const initial = initialComposeDraft({
-    reply: original,
-    mode: 'forward',
-    email,
-    preferences: { displayName: 'An', signature: '', contacts: [] },
-  });
+  const initial = legacyQuote(
+    initialComposeDraft({
+      reply: original,
+      mode: 'forward',
+      email,
+      preferences: { displayName: 'An', signature: '', contacts: [] },
+    }),
+  );
   const tail = initial.text.slice(
     initial.text.indexOf('\n---------- Thư được chuyển tiếp ----------\n'),
   );
@@ -255,4 +284,13 @@ it('requires the exact original quoted tail once at the end before formatting th
     jobTitle: '',
     offset: 19,
   });
+});
+
+it('keeps literal original greater-than prefixes only in the separate structured quote', () => {
+  const draft = initialComposeDraft({
+    reply: { ...original, text: 'Ordinary line\n> Existing literal prefix' },
+    email: 'owner@iconiclogs.com',
+  });
+  expect(draft.text).not.toContain('Ordinary line');
+  expect(draft.quote?.text).toBe('Ordinary line\n> Existing literal prefix');
 });

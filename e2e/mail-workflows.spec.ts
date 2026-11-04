@@ -280,10 +280,10 @@ test('advanced sender/date filters combine with quick filters and clear without 
   await expect(page.getByLabel('Người gửi', { exact: true })).toHaveValue('');
 });
 
-test('reply-all removes self and duplicate recipients while retaining quoted original lines', async ({
+test('reply-all keeps structured original context through draft reload and send', async ({
   page,
 }) => {
-  await fixture(page);
+  const f = await fixture(page);
   await open(page);
   await page.getByRole('button', { name: 'Trả lời tất cả', exact: true }).click();
   await expect(page.locator('#draft-to')).toHaveValue('an@example.test, binh@example.test');
@@ -291,13 +291,37 @@ test('reply-all removes self and duplicate recipients while retaining quoted ori
   await expect(page.getByRole('textbox', { name: 'Tiêu đề thư', exact: true })).toHaveValue(
     'Re: ' + subject,
   );
-  await expect(page.getByRole('textbox', { name: 'Nội dung thư', exact: true })).toHaveValue(
-    /> Xin xác nhận lịch tàu\.\n> Vui lòng kiểm tra manifest đính kèm\./,
+  await expect(page.getByRole('textbox', { name: 'Nội dung thư', exact: true })).not.toHaveValue(
+    /Xin xác nhận lịch tàu/,
+  );
+  await page.locator('.composer-original summary').click();
+  await expect(page.locator('.composer-original-body')).toHaveText(original().text);
+  await expect(page.locator('.composer-original-body')).not.toHaveText(/^> /);
+  await expect(page.locator('.composer-original dl')).toContainText(original().from.address);
+  await expect(page.locator('.composer-original dl')).toContainText(subject);
+  await expect(page.locator('.composer-original dl')).toContainText('chau@example.test');
+  await expect(page.getByRole('textbox', { name: 'Nội dung thư', exact: true })).not.toHaveValue(
+    /^> /m,
   );
   await closeCompose(page);
+  await page.reload();
   await page.getByRole('button', { name: 'Bản nháp', exact: true }).click();
   await page.locator('.draft-card').click();
   await expect(page.locator('#draft-to')).toHaveValue('an@example.test, binh@example.test');
+  await page.locator('.composer-original summary').click();
+  await expect(page.locator('.composer-original-body')).toHaveText(original().text);
+  await page.getByRole('button', { name: 'Gửi thư', exact: true }).click();
+  await expect.poll(() => f.sends.length).toBe(1);
+  expect(f.sends[0]!.quote).toMatchObject({
+    kind: 'reply',
+    subject,
+    from: original().from,
+    text: original().text,
+  });
+  expect(f.sends[0]!.text).not.toContain('Xin xác nhận lịch tàu');
+  expect(f.sends[0]!.inReplyTo).toBe('<synthetic-original@example.test>');
+  expect(f.sends[0]!.to).toEqual(['an@example.test', 'binh@example.test']);
+  expect(f.sends[0]!.cc).toEqual(['chau@example.test']);
 });
 
 test('forward preserves original attachment bytes and Bcc through the visible send flow', async ({
@@ -311,15 +335,18 @@ test('forward preserves original attachment bytes and Bcc through the visible se
   await page.locator('#draft-to').fill('recipient@example.test');
   await page.getByRole('button', { name: 'Thêm người nhận Bcc', exact: true }).click();
   await page.getByLabel('Bcc', { exact: true }).fill('hidden@example.test');
-  await expect(page.getByRole('textbox', { name: 'Nội dung thư', exact: true })).toHaveValue(
+  await expect(page.getByRole('textbox', { name: 'Nội dung thư', exact: true })).not.toHaveValue(
     /Thư được chuyển tiếp/,
   );
+  await page.locator('.composer-original summary').click();
+  await expect(page.locator('.composer-original-body')).toHaveText(original().text);
   await page.getByRole('button', { name: 'Gửi thư', exact: true }).click();
   await expect.poll(() => f.sends.length).toBe(1);
   expect(f.sends[0]).toMatchObject({
     to: ['recipient@example.test'],
     bcc: ['hidden@example.test'],
     subject: 'Fwd: ' + subject,
+    quote: { kind: 'forward', text: original().text, subject },
   });
   expect(Buffer.from(f.sends[0]!.attachments[0]!.content, 'base64')).toEqual(file);
   await expect(page.locator('.composer')).toContainText('Đã gửi');
@@ -394,7 +421,7 @@ for (const viewport of [
   }, info) => {
     await page.setViewportSize(viewport);
     await fixture(page);
-    for (const surface of ['workspace', 'filters', 'reader']) {
+    for (const surface of ['workspace', 'filters', 'reader', 'compose-quote']) {
       if (surface === 'filters')
         await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
       if (surface === 'reader') {
@@ -402,6 +429,16 @@ for (const viewport of [
         expect(
           await page
             .locator('.mail-sender')
+            .evaluate((element) => element.scrollWidth <= element.clientWidth),
+        ).toBe(true);
+      }
+      if (surface === 'compose-quote') {
+        await page.getByRole('button', { name: 'Trả lời tất cả', exact: true }).click();
+        await page.locator('.composer-original summary').click();
+        await page.locator('.composer-original').scrollIntoViewIfNeeded();
+        expect(
+          await page
+            .locator('.composer')
             .evaluate((element) => element.scrollWidth <= element.clientWidth),
         ).toBe(true);
       }
@@ -417,3 +454,48 @@ for (const viewport of [
         .toEqual([]);
     }
   });
+
+test('synthetic mobile quote disclosure preserves literal content and explicit removal survives reload', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const f = await fixture(page);
+  const text =
+    'Original line\n> Literal prefix from the original\n<script>plain original text</script>';
+  await page.route('**/api/messages/7.1?*', (route) =>
+    route.fulfill({ json: { ...original(), text } }),
+  );
+  await open(page);
+  await page.getByRole('button', { name: 'Trả lời thư', exact: true }).click();
+  await expect(page.locator('.composer-original-body')).not.toBeVisible();
+  await page.locator('.composer-original summary').click();
+  await expect(page.locator('.composer-original-body')).toHaveText(text);
+  expect(await page.locator('.composer-original-body script').count()).toBe(0);
+  expect(
+    await page
+      .locator('.composer')
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+  ).toBe(true);
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
+  const serverOriginal = structuredClone(f.boxes.get('inbox'));
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('button', { name: 'Bỏ nội dung thư trước', exact: true }).click();
+  await expect(page.locator('.composer-original-body')).toHaveText(text);
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Bỏ nội dung thư trước', exact: true }).click();
+  expect(f.actions).toEqual([]);
+  expect(f.boxes.get('inbox')).toEqual(serverOriginal);
+  await expect(page.locator('.composer-original')).toHaveCount(0);
+  await closeCompose(page);
+  await page.reload();
+  await page.getByRole('button', { name: 'Bản nháp', exact: true }).click();
+  await page.locator('.draft-card').click();
+  await expect(page.locator('.composer-original')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Gửi thư', exact: true }).click();
+  await expect.poll(() => f.sends.length).toBe(1);
+  expect(f.sends[0]!.quote).toBeUndefined();
+  expect(f.sends[0]!.text).not.toContain('Original line');
+});

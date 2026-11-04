@@ -121,3 +121,23 @@ it('encrypts and restores typed company signature preferences and draft payload'
     deliveryKey: 'stable_signature_key',
   });
 });
+it('retains structured quote metadata, original body and literal prefixes through encrypted draft reload', async () => {
+  const { storage } = fixture();
+  const data = new PersonalData(storage, secret, 'a@iconiclogs.com');
+  const quote = {
+    kind: 'forward' as const,
+    from: { name: 'Original', address: 'sender@example.com' },
+    to: [],
+    date: '2026-11-04T02:00:00Z',
+    subject: 'Context',
+    text: 'Original line\n> literal prefix',
+  };
+  const saved = await data.saveDraft(
+    '12345678-1234-4123-a123-123456789012',
+    { ...draft, text: 'Only authored text', quote },
+    0,
+  );
+  expect(
+    (await new PersonalData(storage, secret, 'a@iconiclogs.com').draft(saved.id)).draft,
+  ).toMatchObject({ text: 'Only authored text', quote });
+});

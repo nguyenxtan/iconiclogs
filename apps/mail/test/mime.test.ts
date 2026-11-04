@@ -104,3 +104,71 @@ it('falls back to the editable plain body when the signature position or authent
   );
   expect(moved.html).toBe(false);
 });
+it('sends structured previous-message context separately without generating greater-than prefixes', async () => {
+  const { companySignature } = await import('../src/shared/signature');
+  const block = companySignature('owner@iconiclogs.com', 'An', '').text;
+  const draft = {
+    to: ['to@example.com'],
+    cc: [],
+    subject: 'Re: Original',
+    displayName: 'An',
+    text: 'Authored <b>hello</b>\n\n' + block,
+    signature: { jobTitle: '', offset: 'Authored <b>hello</b>\n\n'.length },
+    quote: {
+      kind: 'reply' as const,
+      from: { name: 'Sender <script>x</script>', address: 'sender@example.com' },
+      to: [{ name: 'Owner', address: 'owner@iconiclogs.com' }],
+      date: '2026-11-04T02:00:00Z',
+      subject: 'Original',
+      text: 'Original <img src=x onerror=alert(1)>\n> This prefix already existed\nLast line',
+    },
+    attachments: [],
+    inReplyTo: '<original@example.com>',
+  };
+  const parsed = await parseMessage(
+    await composeMessage('owner@iconiclogs.com', draft, '<quote@iconiclogs.com>'),
+  );
+  expect(parsed.text).toContain(
+    'Original <img src=x onerror=alert(1)>\n> This prefix already existed\nLast line',
+  );
+  expect(parsed.text).not.toContain('\n> Original');
+  expect(parsed.text).toContain('Từ: Sender <script>x</script> <sender@example.com>');
+  expect(parsed.inReplyTo).toBe('<original@example.com>');
+  expect(parsed.html).toContain('<blockquote');
+  expect(parsed.html).toContain('Original &lt;img src=x onerror=alert(1)&gt;');
+  expect(parsed.html).not.toMatch(/<img|<script|<b>hello/);
+  expect((parsed.html as string).match(/<table/g)).toHaveLength(1);
+  expect((parsed.html as string).indexOf('ICONIC LOGISTICS')).toBeLessThan(
+    (parsed.html as string).indexOf('<blockquote'),
+  );
+});
+
+it('renders an escaped quote HTML alternative even without a company signature', async () => {
+  const quote = {
+    kind: 'forward' as const,
+    from: { name: 'Sender', address: 'sender@example.com' },
+    to: [],
+    date: '2026-11-04T02:00:00Z',
+    subject: 'Original',
+    text: 'Keep original\n> literal prefix\n<script>unsafe</script>',
+  };
+  const parsed = await parseMessage(
+    await composeMessage(
+      'owner@iconiclogs.com',
+      {
+        to: ['recipient@example.test'],
+        cc: [],
+        subject: 'Fwd',
+        text: 'Authored <b>text</b>',
+        quote,
+        attachments: [],
+      },
+      '<off-signature@example.com>',
+    ),
+  );
+  expect(parsed.html).toContain('<blockquote');
+  expect(parsed.html).toContain('Authored &lt;b&gt;text&lt;/b&gt;');
+  expect(parsed.html).toContain('&lt;script&gt;unsafe&lt;/script&gt;');
+  expect(parsed.html).not.toContain('<script>');
+  expect(parsed.text).toContain(quote.text);
+});

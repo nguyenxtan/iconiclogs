@@ -1,4 +1,9 @@
-import { signatureMessageHtml, signaturePayloadInput } from '../../shared/signature';
+import { quotedMessageInput, quotedHtml, quotedPlainText } from '../../shared/quoted';
+import {
+  escapeSignatureHtml,
+  signatureMessageHtml,
+  signaturePayloadInput,
+} from '../../shared/signature';
 import { simpleParser, type ParsedMail } from 'mailparser';
 import nodemailer from 'nodemailer';
 import type { MailMessage, SendDraft } from '../../shared/contracts';
@@ -48,22 +53,28 @@ export async function composeMessage(
     buffer: true,
     newline: 'windows',
   });
+  const quote = draft.quote ? quotedMessageInput(draft.quote) : undefined;
+  let html = draft.signature
+    ? signatureMessageHtml(
+        draft.text,
+        signaturePayloadInput(draft.signature),
+        email,
+        draft.displayName || '',
+      )
+    : undefined;
+  if (quote) {
+    const original = quotedHtml(quote);
+    html = html
+      ? html.replace('</body>', `${original}</body>`)
+      : `<!doctype html><html><body style="margin:0;padding:0;background:#fff;"><div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#263238;white-space:pre-wrap;">${escapeSignatureHtml(draft.text)}</div>${original}</body></html>`;
+  }
   const info = await composer.sendMail({
     from: { address: email, name: draft.displayName || '' },
     to: draft.to,
     cc: draft.cc,
     subject: draft.subject,
-    text: draft.text,
-    ...(draft.signature
-      ? {
-          html: signatureMessageHtml(
-            draft.text,
-            signaturePayloadInput(draft.signature),
-            email,
-            draft.displayName || '',
-          ),
-        }
-      : {}),
+    text: quote ? `${draft.text}\n\n${quotedPlainText(quote)}` : draft.text,
+    ...(html ? { html } : {}),
     messageId,
     inReplyTo: draft.inReplyTo,
     references: draft.inReplyTo,

@@ -1,3 +1,4 @@
+import { quotedMessageInput, QuotedMessageTooLarge } from '../../shared/quoted';
 import { signaturePayloadInput } from '../../shared/signature';
 import type { Folder, MessageAction, MessageFilter, SendDraft } from '../../shared/contracts';
 import { invalid, MailError } from './errors';
@@ -92,7 +93,26 @@ export function sendInput(input: unknown): SendDraft {
     size += file.content.length;
     return { name: file.name, type: file.type, content: file.content };
   });
-  if (size + new TextEncoder().encode(body.text).length > MAX_MIME - 65536)
+  let quote: SendDraft['quote'];
+  if (body.quote !== undefined) {
+    try {
+      quote = quotedMessageInput(body.quote);
+    } catch (error) {
+      if (error instanceof QuotedMessageTooLarge)
+        throw new MailError(
+          'QUOTE_TOO_LARGE',
+          413,
+          'Nội dung thư trước vượt giới hạn 128 KiB. Hãy bỏ phần thư trước hoặc giảm nội dung trước khi gửi.',
+        );
+      throw invalid();
+    }
+  }
+  if (
+    size +
+      new TextEncoder().encode(body.text).length +
+      (quote ? new TextEncoder().encode(JSON.stringify(quote)).length : 0) >
+    MAX_MIME - 65536
+  )
     throw new MailError('TOO_LARGE', 413, 'Tổng dung lượng thư tối đa 10 MiB, gồm mã hóa file.');
   let signature: SendDraft['signature'];
   if (body.signature !== undefined) {
@@ -106,6 +126,7 @@ export function sendInput(input: unknown): SendDraft {
     to,
     cc,
     ...(signature ? { signature } : {}),
+    ...(quote ? { quote } : {}),
     ...(body.bcc !== undefined ? { bcc } : {}),
     ...(body.displayName !== undefined ? { displayName: (body.displayName as string).trim() } : {}),
     subject: body.subject,

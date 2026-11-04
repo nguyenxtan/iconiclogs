@@ -44,12 +44,22 @@ export interface DraftAttachment {
   type: string;
   content: string;
 }
+export interface QuotedMessage {
+  kind: 'reply' | 'forward';
+  from: MailAddress;
+  to: MailAddress[];
+  cc?: MailAddress[];
+  date: string;
+  subject: string;
+  text: string;
+}
 export interface SendDraft {
   to: string[];
   cc: string[];
   bcc?: string[];
   displayName?: string;
   signature?: CompanySignaturePayload;
+  quote?: QuotedMessage;
   deliveryGuard?: 'unknown' | 'partial';
   deliveryKey?: string;
   subject: string;

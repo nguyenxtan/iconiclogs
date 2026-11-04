@@ -34,6 +34,7 @@ import { DraftAutosave, type DraftSaveStatus } from './draftAutosave';
 import { sendDraftSafely } from './composeDelivery';
 import './composer-extra.css';
 import { SignaturePreview } from './SignatureEditor';
+import { quotedAddressLabel, quotedDate } from '../shared/quoted';
 
 export function Composer({
   session,
@@ -72,6 +73,7 @@ export function Composer({
   const [showBcc, setShowBcc] = useState(!!initial.bcc?.length);
   const [subject, setSubject] = useState(initial.subject);
   const [text, setText] = useState(initial.text);
+  const [quote, setQuote] = useState(initial.quote);
   const [attachments, setAttachments] = useState(initial.attachments);
   const [touched, setTouched] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -136,13 +138,25 @@ export function Composer({
       subject,
       text,
       attachments,
+      ...(quote ? { quote } : {}),
       displayName: initial.displayName ?? preferences?.displayName ?? '',
       ...(currentDraftSignature(initial, text, session.email)
         ? { signature: currentDraftSignature(initial, text, session.email) }
         : {}),
       ...(initial.inReplyTo ? { inReplyTo: initial.inReplyTo } : {}),
     }),
-    [to, cc, bcc, subject, text, attachments, initial, preferences?.displayName, session.email],
+    [
+      to,
+      cc,
+      bcc,
+      subject,
+      text,
+      attachments,
+      quote,
+      initial,
+      preferences?.displayName,
+      session.email,
+    ],
   );
   const locked = closing || state === 'sending' || state === 'unknown' || state === 'delivered';
   const loadingFiles = picking || forwardState === 'loading';
@@ -580,6 +594,60 @@ export function Composer({
                 jobTitle={formDraft.signature.jobTitle}
               />
             </div>
+          )}
+          {quote && (
+            <section className="composer-original" aria-label="Nội dung thư trước">
+              <details>
+                <summary>
+                  <span>Nội dung thư trước</span>
+                  <small>
+                    {quote.from.name || quote.from.address} · {quotedDate(quote.date)}
+                  </small>
+                </summary>
+                <dl>
+                  <div>
+                    <dt>Từ</dt>
+                    <dd>{quotedAddressLabel(quote.from)}</dd>
+                  </div>
+                  <div>
+                    <dt>Ngày</dt>
+                    <dd>{quotedDate(quote.date)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tiêu đề</dt>
+                    <dd>{quote.subject}</dd>
+                  </div>
+                  <div>
+                    <dt>Đến</dt>
+                    <dd>{quote.to.map(quotedAddressLabel).join(', ')}</dd>
+                  </div>
+                  {!!quote.cc?.length && (
+                    <div>
+                      <dt>Cc</dt>
+                      <dd>{quote.cc.map(quotedAddressLabel).join(', ')}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="composer-original-body">{quote.text}</div>
+              </details>
+              <button
+                type="button"
+                className="composer-remove-original"
+                disabled={locked}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Bỏ nội dung thư trước khỏi thư này? Nội dung trên máy chủ vẫn được giữ.',
+                    )
+                  ) {
+                    edited();
+                    setQuote(undefined);
+                  }
+                }}
+              >
+                Bỏ nội dung thư trước
+              </button>
+            </section>
           )}
           {forwardState !== 'none' && (
             <div
