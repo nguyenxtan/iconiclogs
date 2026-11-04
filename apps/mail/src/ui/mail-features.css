@@ -407,3 +407,22 @@ textarea:focus-visible {
   font-size: 11px;
   letter-spacing: 1.3px;
 }
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .mail-search {
+    max-height: 30dvh;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+  .list-heading {
+    padding-block: 8px;
+  }
+  .list-heading h1,
+  .list-heading .icon-button {
+    margin-top: 0;
+  }
+  .pagination {
+    padding-block: 8px;
+  }
+}

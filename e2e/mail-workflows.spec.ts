@@ -437,6 +437,12 @@ for (const viewport of [
         await page.locator('.composer-original summary').click();
         await page.locator('.composer-original').scrollIntoViewIfNeeded();
         expect(
+          await page.getByRole('button', { name: 'Gửi thư', exact: true }).evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            return rect.top >= 0 && rect.bottom <= innerHeight;
+          }),
+        ).toBe(true);
+        expect(
           await page
             .locator('.composer')
             .evaluate((element) => element.scrollWidth <= element.clientWidth),
@@ -498,4 +504,52 @@ test('synthetic mobile quote disclosure preserves literal content and explicit r
   await expect.poll(() => f.sends.length).toBe(1);
   expect(f.sends[0]!.quote).toBeUndefined();
   expect(f.sends[0]!.text).not.toContain('Original line');
+});
+
+test('short mobile advanced filters leave a reachable message row and scroll within their own panel', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await fixture(page);
+  await page.getByRole('button', { name: 'Bộ lọc', exact: true }).click();
+  await screenshot(page, info, '390x600-expanded-filters');
+  expect(
+    await page.locator('.message-items').evaluate((element) => element.clientHeight),
+  ).toBeGreaterThanOrEqual(80);
+  expect(
+    await page
+      .locator('.mail-search')
+      .evaluate((element) => element.scrollHeight > element.clientHeight),
+  ).toBe(true);
+  await page.getByLabel('Người gửi', { exact: true }).fill('an@example.test');
+  await page.getByLabel('Trước ngày', { exact: true }).fill('2026-11-05');
+  await expect(page.locator('.mail-row')).toHaveCount(1);
+  const first = page.locator('.message-row').first();
+  await first.scrollIntoViewIfNeeded();
+  expect(
+    await first.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      return (
+        box.top >= 0 && box.bottom <= innerHeight && (hit === element || element.contains(hit))
+      );
+    }),
+  ).toBe(true);
+  expect(
+    await page
+      .locator('.row-star')
+      .first()
+      .evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return hit === element || element.contains(hit);
+      }),
+  ).toBe(true);
+  await screenshot(page, info, '390x600-applied-filters');
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+      .violations,
+  ).toEqual([]);
+  await first.click();
+  await expect(page.locator('.mail-subject h2')).toHaveText(subject);
 });

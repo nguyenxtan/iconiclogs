@@ -118,10 +118,10 @@
   --canvas: #f4f6f7;
   --surface: #edf1f3;
 }
-.composer-header {
+.composer-heading {
   background: #f4f6f7;
 }
-.composer-header h2 {
+.composer-heading h2 {
   font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.6px;
@@ -195,4 +195,13 @@
   .composer-original {
     margin-inline: 20px;
   }
+}
+
+.composer-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 -5px 14px #23313a08;
 }
