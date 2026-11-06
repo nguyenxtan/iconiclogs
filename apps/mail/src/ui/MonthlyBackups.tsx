@@ -123,11 +123,7 @@ export function MonthlyBackups(props: Props) {
     try {
       await api.checkBackupMonthDownload(month.month);
       if (!alive.current) return;
-      const link = document.createElement('a');
-      link.href = api.backupMonthDownloadUrl(month.month);
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.click();
+      window.location.assign(api.backupMonthDownloadUrl(month.month));
     } catch (reason) {
       if (alive.current) {
         setError(errorMessage(reason));
@@ -273,8 +269,6 @@ export function MonthlyBackups(props: Props) {
                           aria-disabled={busy || undefined}
                           tabIndex={busy ? -1 : 0}
                           href={busy ? undefined : api.backupMonthDownloadUrl(month.month)}
-                          target="_blank"
-                          rel="noopener"
                           onClick={(event) => {
                             event.preventDefault();
                             void download(month);

@@ -288,7 +288,9 @@ test('an expired ZIP download preflight returns to login without downloading', a
   expect(methods).toEqual(['HEAD']);
 });
 
-test('successful metadata preflight starts a native streamed ZIP download', async ({ page }) => {
+test('successful metadata preflight downloads ZIP in the current tab without a popup', async ({
+  page,
+}) => {
   await monthsFixture(page);
   await page.getByRole('button', { name: 'Nén tháng 11/2026', exact: true }).click();
   // Independent Python zipfile fixture; archive format/integrity is tested by the backend suite.
@@ -299,29 +301,18 @@ test('successful metadata preflight starts a native streamed ZIP download', asyn
   const methods: string[] = [];
   const pattern = '**/api/backups/months/2026-11/download';
   await page.route(pattern, (route) => {
-    methods.push(route.request().method());
-    return route.fulfill({
-      headers: { 'Content-Type': 'application/zip', 'Content-Length': String(zip.length) },
-      body: '',
-    });
-  });
-  await page.context().route(pattern, (route) => {
-    methods.push(route.request().method());
+    const method = route.request().method();
+    methods.push(method);
     return route.fulfill({
       headers: {
         'Content-Type': 'application/zip',
+        'Content-Length': String(zip.length),
         'Content-Disposition': 'attachment; filename="ICONIC-Mail-synthetic-2026-11.zip"',
       },
-      body: zip,
+      body: method === 'HEAD' ? '' : zip,
     });
   });
-  const received = Promise.race([
-    page.waitForEvent('download'),
-    page
-      .context()
-      .waitForEvent('page')
-      .then((popup) => popup.waitForEvent('download')),
-  ]);
+  const received = page.waitForEvent('download', { timeout: 5000 });
   await page.getByRole('link', { name: 'Tải ZIP tháng 11/2026', exact: true }).click();
   const download = await received;
   expect(download.suggestedFilename()).toBe('ICONIC-Mail-synthetic-2026-11.zip');
