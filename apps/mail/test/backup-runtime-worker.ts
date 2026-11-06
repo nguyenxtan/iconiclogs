@@ -20,6 +20,7 @@ export class NativeBackup extends DurableObject<NativeEnv> {
       this.env.BACKUP_BUCKET,
       this.env.BACKUP_KEY!,
       (identity) => ({
+        quota: async () => ({ used: 80, limit: 100 }),
         snapshot: async () => [
           {
             path: 'INBOX',

@@ -253,3 +253,19 @@ Gói thay thế có 24 giờ chờ trước khi dọn để lượt tải đang 
 ZIP32 giới hạn dưới 4 GiB và dưới 65.534 thư; vượt giới hạn giữ nguyên dữ liệu và
 báo rõ. HEAD chỉ kiểm tra metadata/quyền truy cập, GET truyền ZIP từng khối;
 giao diện kiểm tra HEAD trước tải và xử lý lỗi/hết phiên qua luồng chung.
+
+## Sao lưu tự động theo dung lượng — 06/11/2026
+
+Chủ dự án chốt chỉ tự khởi động sao lưu khi hộp thư dùng từ 80% quota Viettel.
+Đề xuất vận hành: kiểm tra quota mỗi giờ; lần đầu sau khi chủ hộp thư bật sẽ
+kiểm tra ngay. Dưới ngưỡng hoặc không có quota hợp lệ thì không khởi động
+capture, và UI hiển thị lý do. Khi vẫn trên ngưỡng, cách nhau tối thiểu 24 giờ
+giữa các lượt tự động đã kết thúc; lượt đang chạy/retry tiếp tục cùng checkpoint.
+Đây là lựa chọn triển khai, không phải yêu cầu về chu kỳ do chủ dự án chỉ định.
+
+Quota dùng số byte used/limit thực, không lấy phần trăm đã làm tròn trên UI.
+Lịch chỉ tiếp tục run do chính nó nhận quản lý sau khi qua điều kiện 80%; không
+tự tiếp tục một lượt thủ công đang dở khi dưới ngưỡng. Mất quyền/auth thì giữ
+quy tắc thu hồi/tạm dừng; tắt tự động thu hồi credential, giữ ZIP và cleanup.
+Manual backup/restore vẫn chủ động được ở mọi mức dung lượng. Không xóa thư
+Viettel; opt-in lưu credential mã hóa vẫn là thao tác riêng của chủ hộp thư.

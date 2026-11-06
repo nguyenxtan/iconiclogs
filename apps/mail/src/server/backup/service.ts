@@ -1,11 +1,25 @@
 import type { Credentials } from '../core/session';
 import { MAX_MIME } from '../core/validation';
-import type { BackupItem, BackupRestore, BackupRun, BackupStatus } from '../../shared/backup';
+import type {
+  BackupAutomation,
+  BackupItem,
+  BackupRestore,
+  BackupRun,
+  BackupStatus,
+} from '../../shared/backup';
 import { backupError, backupKey, digest, open, seal } from './crypto';
 import { isAuthError, MailError } from '../core/errors';
 import { DefiniteRestoreFailure } from './restore';
 import { MonthlyArchive, type ArchiveBucket } from './monthly';
 import { monthOf, validMonth } from './zip';
+import type { MailQuota } from '../../shared/contracts';
+import {
+  captureInterval,
+  quotaInterval,
+  recordQuota,
+  finishAutomatic,
+  type AutomaticBackup,
+} from './automation';
 
 export interface BackupFolder {
   path: string;
@@ -24,6 +38,7 @@ export interface CaptureMessage {
 }
 export type KnownMessage = (folder: BackupFolder, uid: number) => Promise<string | undefined>;
 export interface BackupSource {
+  quota(): Promise<MailQuota | null>;
   snapshot(): Promise<BackupFolder[]>;
   batch(
     folder: BackupFolder,
@@ -54,13 +69,6 @@ interface RunState {
   cursor: number;
   failureKind?: 'transient' | 'auth' | 'revoked';
 }
-interface Daily {
-  credentials: Credentials;
-  nextRunAt: number;
-  retries?: number;
-  retryAt?: number;
-  suspended?: boolean;
-}
 interface RestoreRecord extends BackupRestore {
   fingerprint: string;
   operation?: string;
@@ -90,7 +98,6 @@ function restoreTarget(folder: string) {
     return 'role:' + folder;
   return 'path:' + path;
 }
-const day = 24 * 60 * 60 * 1000;
 const encoder = new TextEncoder(),
   decoder = new TextDecoder();
 
@@ -159,13 +166,31 @@ export class BackupService {
     return work;
   }
   private async currentStatus(): Promise<BackupStatus> {
-    const daily = await this.get<Daily>('daily');
+    const daily = await this.get<AutomaticBackup>('daily');
     return {
       enabled: !!daily,
       ...(daily?.suspended ? { suspended: true } : {}),
       ...(daily && !daily.suspended ? { nextRunAt: daily.retryAt ?? daily.nextRunAt } : {}),
+      ...(daily ? { automation: await this.automaticPolicy(daily) } : {}),
       run: (await this.get<RunState>('run'))?.run ?? null,
     };
+  }
+  private async automaticPolicy(saved: AutomaticBackup): Promise<BackupAutomation> {
+    const history = await this.get<{ nextBackupAt: number }>('automatic-history');
+    const nextBackupAt = Math.max(history?.nextBackupAt ?? 0, saved.automation?.nextBackupAt ?? 0);
+    return {
+      ...(saved.automation ?? { thresholdPercent: 80, state: 'pending' }),
+      ...(nextBackupAt ? { nextBackupAt } : {}),
+    };
+  }
+  private async saveAutomatic(saved: AutomaticBackup) {
+    saved.automation = await this.automaticPolicy(saved);
+    const history = await this.get<{ nextBackupAt: number }>('automatic-history');
+    const nextBackupAt = saved.automation.nextBackupAt;
+    // Keep non-secret cooldown independently of the revocable credential record.
+    if (nextBackupAt && nextBackupAt > (history?.nextBackupAt ?? 0))
+      await this.put('automatic-history', { nextBackupAt });
+    await this.put('daily', saved);
   }
   status(email: string) {
     return this.serial(email, () => this.currentStatus());
@@ -174,8 +199,21 @@ export class BackupService {
     return this.serial(credentials.email, async () => {
       if (enabled) {
         this.source(credentials); // Validate provider configuration and current account allowlist before saving credentials.
-        const nextRunAt = Date.now() + day;
-        await this.put('daily', { credentials, nextRunAt });
+        const existing = await this.get<AutomaticBackup>('daily');
+        const nextRunAt = Date.now() + 1000;
+        await this.saveAutomatic({
+          credentials,
+          nextRunAt,
+          automation: existing?.automation ?? { thresholdPercent: 80, state: 'pending' },
+          ...(existing?.runId ? { runId: existing.runId } : {}),
+          ...(existing?.pendingRunId ? { pendingRunId: existing.pendingRunId } : {}),
+          ...(existing?.pendingPreviousRunId
+            ? { pendingPreviousRunId: existing.pendingPreviousRunId }
+            : {}),
+          ...(existing?.runId && (existing.retryAt || existing.suspended)
+            ? { retryAt: nextRunAt }
+            : {}),
+        });
       } else {
         await this.store.delete('daily');
         await this.monthly().maintain();
@@ -183,11 +221,12 @@ export class BackupService {
       return this.currentStatus();
     });
   }
-  private async begin(credentials: Credentials) {
+  private async begin(credentials: Credentials, runId?: string) {
     const existing = await this.get<RunState>('run');
-    if (existing?.run.state === 'running') return this.currentStatus();
+    if (existing?.run.state === 'running' || (runId && existing?.run.id === runId))
+      return this.currentStatus();
     const run: BackupRun = {
-      id: crypto.randomUUID(),
+      id: runId ?? crypto.randomUUID(),
       state: 'running',
       captured: 0,
       errors: [],
@@ -605,9 +644,10 @@ export class BackupService {
       deadlines.push(
         retired[0].value.deleteAfter > now ? retired[0].value.deleteAfter : continuation,
       );
-    const daily = await this.get<Daily>('daily');
+    const daily = await this.get<AutomaticBackup>('daily');
     if (daily && !daily.suspended) {
-      const running = (await this.get<RunState>('run'))?.run.state === 'running';
+      const run = (await this.get<RunState>('run'))?.run;
+      const running = !!daily.pendingRunId || (run?.state === 'running' && run.id === daily.runId);
       deadlines.push(running ? continuation : Math.max(now + 1, daily.retryAt ?? daily.nextRunAt));
     }
     if (deadlines.length) await this.store.setAlarm(Math.min(...deadlines));
@@ -619,7 +659,7 @@ export class BackupService {
     if (!scope || !this.bucket) return;
     this.key ??= await backupKey(this.secret);
     this.scope = scope;
-    const daily = await this.get<Daily>('daily');
+    const daily = await this.get<AutomaticBackup>('daily');
     if (!daily) {
       const work = this.queue.then(async () => {
         try {
@@ -634,7 +674,7 @@ export class BackupService {
     }
     return this.serial(daily.credentials.email, async () => {
       // Re-read after acquiring the queue: disable may have revoked the record meanwhile.
-      const saved = await this.get<Daily>('daily');
+      const saved = await this.get<AutomaticBackup>('daily');
       if (!saved) return;
       if (saved.suspended) {
         return;
@@ -655,16 +695,77 @@ export class BackupService {
         throw error;
       }
       let status = await this.currentStatus();
-      const due = saved.retryAt ?? saved.nextRunAt;
-      if (status.run?.state !== 'running' && Date.now() < due) {
+      saved.automation = status.automation;
+      // A pending intent can resume only its exact run, never a newer manual replacement.
+      if (
+        saved.pendingRunId &&
+        status.run &&
+        status.run.id !== saved.pendingRunId &&
+        (status.run.id !== saved.pendingPreviousRunId || status.run.state === 'running')
+      ) {
+        delete saved.pendingRunId;
+        delete saved.pendingPreviousRunId;
+        delete saved.runId;
+        delete saved.retryAt;
+        saved.nextRunAt = Date.now() + quotaInterval;
+        await this.saveAutomatic(saved);
         return;
+      }
+      const due = saved.retryAt ?? saved.nextRunAt;
+      const owned = !!saved.runId && saved.runId === status.run?.id;
+      const continuing = !!saved.pendingRunId || (owned && status.run?.state === 'running');
+      // A manual UI continuation may have completed an owned run between alarms.
+      if (owned && ['complete', 'partial'].includes(status.run!.state)) {
+        finishAutomatic(saved, Date.now());
+        await this.saveAutomatic(saved);
+        return;
+      }
+      const ownedError = owned && status.run?.state === 'error';
+      if (!continuing && !(ownedError && !saved.retryAt) && Date.now() < due) return;
+      if (!continuing && !ownedError) {
+        delete saved.retryAt;
+        delete saved.runId;
+        let quota: MailQuota | null;
+        try {
+          quota = await this.source(saved.credentials).quota();
+        } catch (error) {
+          if (error instanceof MailError && error.code === 'BACKUP_REVOKED') {
+            await this.store.delete('daily');
+            return;
+          }
+          saved.automation = {
+            thresholdPercent: 80,
+            state: 'error',
+            checkedAt: Date.now(),
+            ...(saved.automation?.nextBackupAt
+              ? { nextBackupAt: saved.automation.nextBackupAt }
+              : {}),
+          };
+          if (isAuthError(error)) saved.suspended = true;
+          else saved.nextRunAt = Date.now() + quotaInterval;
+          await this.saveAutomatic(saved);
+          return;
+        }
+        if (!recordQuota(saved, quota, Date.now())) {
+          await this.saveAutomatic(saved);
+          return;
+        }
+        // Qualifying intent is durable before the run/snapshot. Resume it after lost replies.
+        saved.pendingRunId = status.run?.state === 'running' ? status.run.id : crypto.randomUUID();
+        saved.pendingPreviousRunId = status.run?.id;
+        await this.saveAutomatic(saved);
+      }
+      if (saved.pendingRunId) {
+        status = await this.begin(saved.credentials, saved.pendingRunId);
+        saved.runId = status.run!.id;
+        delete saved.pendingRunId;
+        delete saved.pendingPreviousRunId;
+        saved.automation!.nextBackupAt = Date.now() + captureInterval;
+        await this.saveAutomatic(saved);
       }
       if (saved.retryAt && status.run?.state === 'error')
         status = await this.advance(saved.credentials);
-      else {
-        if (status.run?.state !== 'running') status = await this.begin(saved.credentials);
-        if (status.run?.state === 'running') status = await this.advance(saved.credentials);
-      }
+      else if (status.run?.state === 'running') status = await this.advance(saved.credentials);
       delete saved.retryAt;
       if (status.run?.state === 'running') {
         // The shared scheduler derives the continuation deadline from the durable run.
@@ -681,17 +782,16 @@ export class BackupService {
         } else {
           if (state.run.errors.length < 100)
             state.run.errors.push(
-              'Đã hết lượt tự động thử lại. Bạn có thể tiếp tục thủ công; lịch kế tiếp là ngày mai.',
+              'Đã hết lượt tự động thử lại. Có thể tiếp tục thủ công; hệ thống sẽ kiểm tra dung lượng theo lịch.',
             );
           await this.put('run', state);
           saved.retries = 0;
-          saved.nextRunAt = Date.now() + day;
+          finishAutomatic(saved, Date.now());
         }
       } else {
-        saved.retries = 0;
-        saved.nextRunAt = Date.now() + day;
+        finishAutomatic(saved, Date.now());
       }
-      await this.put('daily', saved);
+      await this.saveAutomatic(saved);
     });
   }
 }

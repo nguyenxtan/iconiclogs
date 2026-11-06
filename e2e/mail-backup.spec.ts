@@ -1,10 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import type { BackupAutomation } from '../apps/mail/src/shared/backup';
 
 // Synthetic fixtures only: these tests never contact a mail provider or restore real mail.
 const mailUrl = process.env.MAIL_TEST_URL ?? 'http://127.0.0.1:6070';
-async function syntheticBackup(page: Page) {
-  let enabled = false;
+async function syntheticBackup(page: Page, automation?: BackupAutomation) {
+  let enabled = !!automation;
   let steps = 0;
   let configured: boolean[] = [];
   const restores: { id: string; folder: string; requestId: string }[] = [];
@@ -65,7 +66,11 @@ async function syntheticBackup(page: Page) {
         json = { messages: [], total: 0, nextPage: null };
         break;
       case '/api/backups':
-        json = { enabled, run };
+        json = {
+          enabled,
+          run,
+          ...(enabled ? { automation, nextRunAt: Date.now() + 3600000 } : {}),
+        };
         break;
       case '/api/backups/catalog':
         json = catalog;
@@ -76,7 +81,16 @@ async function syntheticBackup(page: Page) {
       case '/api/backups/configure':
         enabled = request.postDataJSON().enabled;
         configured.push(enabled);
-        json = { enabled, run, ...(enabled ? { nextRunAt: Date.now() + 86400000 } : {}) };
+        json = {
+          enabled,
+          run,
+          ...(enabled
+            ? {
+                automation: automation ?? { thresholdPercent: 80, state: 'pending' },
+                nextRunAt: Date.now() + 1000,
+              }
+            : {}),
+        };
         break;
       case '/api/backups/start':
         run = {
@@ -86,7 +100,11 @@ async function syntheticBackup(page: Page) {
           errors: [],
           startedAt: '2026-11-04T00:00:00Z',
         };
-        json = { enabled, run };
+        json = {
+          enabled,
+          run,
+          ...(enabled ? { automation, nextRunAt: Date.now() + 3600000 } : {}),
+        };
         break;
       case '/api/backups/step':
         steps++;
@@ -96,7 +114,11 @@ async function syntheticBackup(page: Page) {
           captured: steps,
           ...(steps >= 2 ? { finishedAt: '2026-11-04T00:01:00Z' } : {}),
         };
-        json = { enabled, run };
+        json = {
+          enabled,
+          run,
+          ...(enabled ? { automation, nextRunAt: Date.now() + 3600000 } : {}),
+        };
         break;
       case '/api/backups/restore': {
         const body = request.postDataJSON();
@@ -139,6 +161,7 @@ async function syntheticBackup(page: Page) {
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
   await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   return {
+    catalog,
     restores,
     configured,
     get steps() {
@@ -147,17 +170,17 @@ async function syntheticBackup(page: Page) {
   };
 }
 
-test('synthetic backup API: explicit daily consent, revoke, capture steps and safe restore retry', async ({
+test('synthetic backup API: explicit 80% monitor consent, revoke, capture steps and safe restore retry', async ({
   page,
 }) => {
   const fixture = await syntheticBackup(page);
-  await page.getByRole('button', { name: 'Thiết lập sao lưu hằng ngày' }).click();
+  await page.getByRole('button', { name: 'Thiết lập sao lưu tự động' }).click();
   expect(fixture.configured).toEqual([]);
-  await page.getByRole('button', { name: 'Bật sao lưu hằng ngày', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Tắt sao lưu hằng ngày' })).toBeVisible();
+  await page.getByRole('button', { name: 'Bật sao lưu tự động', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Tắt sao lưu tự động' })).toBeVisible();
   expect(fixture.configured).toEqual([true]);
-  await page.getByRole('button', { name: 'Tắt sao lưu hằng ngày' }).click();
-  await expect(page.getByRole('button', { name: 'Thiết lập sao lưu hằng ngày' })).toBeVisible();
+  await page.getByRole('button', { name: 'Tắt sao lưu tự động' }).click();
+  await expect(page.getByRole('button', { name: 'Thiết lập sao lưu tự động' })).toBeVisible();
   expect(fixture.configured).toEqual([true, false]);
   await page.getByRole('button', { name: 'Sao lưu ngay', exact: true }).click();
   await expect(page.getByText('Hoàn tất', { exact: true })).toBeVisible();
@@ -244,7 +267,7 @@ test('suspended daily backup shows a refresh action instead of an active schedul
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
   await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   await expect(page.locator('.backup-policy .backup-badge')).toHaveText('Tạm dừng');
-  await expect(page.getByText('Lượt dự kiến tiếp theo:', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Lần kiểm tra tiếp theo:', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Cập nhật quyền sao lưu', exact: true }).click();
   expect(refresh).toBe(true);
   await expect(page.locator('.backup-policy .backup-badge')).toHaveText('Đang bật');
@@ -341,5 +364,120 @@ test('reopened interrupted restore remains uncertain and locked instead of looki
       'Các thư chưa xác định đã bị khóa gửi lại. Kiểm tra thư mục đích với quản trị viên.',
       { exact: true },
     ),
+  ).toBeVisible();
+});
+
+for (const sample of [
+  { state: 'below' as const, used: 399999, text: 'Chưa đạt ngưỡng 80%' },
+  { state: 'above' as const, used: 400000, text: 'Đã đạt ngưỡng 80%' },
+  { state: 'unavailable' as const, text: 'Chưa đọc được dung lượng hợp lệ từ Viettel' },
+  {
+    state: 'error' as const,
+    text: 'Không kiểm tra được dung lượng. Hệ thống chưa khởi động lượt sao lưu mới.',
+  },
+]) {
+  test(`automatic backup UI explains ${sample.state} quota and keeps manual capture available`, async ({
+    page,
+  }) => {
+    await syntheticBackup(page, {
+      thresholdPercent: 80,
+      state: sample.state,
+      checkedAt: Date.now(),
+      ...(sample.used !== undefined ? { quota: { used: sample.used, limit: 500000 } } : {}),
+      nextBackupAt: Date.now() + 86400000,
+    });
+    const policy = page.locator('.backup-policy');
+    await expect(policy).toContainText(sample.text);
+    await expect(policy).toContainText('Kiểm tra mỗi giờ');
+    await expect(policy.getByText('Lần kiểm tra tiếp theo:', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sao lưu ngay', exact: true })).toBeEnabled();
+    if (sample.state === 'below') await expect(policy).toContainText('79,9%');
+    if (sample.state === 'above') await expect(policy).toContainText('Lượt cập nhật sớm nhất:');
+    if (sample.state === 'unavailable') await expect(policy).toContainText('không tự đoán');
+    if (sample.state === 'below')
+      await policy.screenshot({ path: '/tmp/iconic-quota-policy-desktop.png' });
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await policy.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    if (sample.state === 'below')
+      await policy.screenshot({ path: '/tmp/iconic-quota-policy-mobile.png' });
+  });
+}
+
+test('enabling the monitor refreshes its initial quota result without reloading settings', async ({
+  page,
+}) => {
+  await syntheticBackup(page);
+  await page.route('**/api/backups', (route) =>
+    route.fulfill({
+      json: {
+        enabled: true,
+        run: null,
+        nextRunAt: Date.now() + 3600000,
+        automation: {
+          thresholdPercent: 80,
+          state: 'below',
+          checkedAt: Date.now(),
+          quota: { used: 200, limit: 500 },
+        },
+      },
+    }),
+  );
+  await page.getByRole('button', { name: 'Thiết lập sao lưu tự động', exact: true }).click();
+  await page.getByRole('button', { name: 'Bật sao lưu tự động', exact: true }).click();
+  await expect(page.locator('.backup-policy')).toContainText('40%');
+  await expect(page.locator('.backup-policy')).toContainText('Chưa đạt ngưỡng 80%');
+});
+
+test('automatic completion refreshes monthly ZIP cards and the open restore catalog', async ({
+  page,
+}) => {
+  const fixture = await syntheticBackup(page);
+  let completed = false;
+  const added = { ...fixture.catalog[0], id: 'e'.repeat(64), subject: 'Thư mới từ lịch tự động' };
+  await page.route('**/api/backups', (route) => {
+    completed = true;
+    return route.fulfill({
+      json: {
+        enabled: true,
+        run: {
+          id: 'automatic-new',
+          state: 'complete',
+          captured: 5,
+          errors: [],
+          startedAt: '2026-11-06T00:00:00Z',
+        },
+        automation: { thresholdPercent: 80, state: 'above', quota: { used: 80, limit: 100 } },
+      },
+    });
+  });
+  await page.route('**/api/backups/months', (route) =>
+    route.fulfill({
+      json: [
+        {
+          month: '2026-11',
+          count: completed ? 5 : 4,
+          rawBytes: 60,
+          state: 'ready',
+          archive: {
+            id: 'new-zip',
+            name: 'November.zip',
+            count: completed ? 5 : 4,
+            rawBytes: 60,
+            zipBytes: 40,
+            updatedAt: '2026-11-06T00:00:00Z',
+          },
+        },
+      ],
+    }),
+  );
+  await page.route('**/api/backups/catalog?*', (route) =>
+    route.fulfill({ json: completed ? [...fixture.catalog, added] : fixture.catalog }),
+  );
+  await page.getByRole('button', { name: 'Thiết lập sao lưu tự động', exact: true }).click();
+  await page.getByRole('button', { name: 'Bật sao lưu tự động', exact: true }).click();
+  await expect(page.getByText('Hoàn tất', { exact: true })).toBeVisible();
+  await expect(page.locator('.backup-months')).toContainText('Đã nén 5 thư');
+  await expect(
+    page.getByRole('checkbox', { name: 'Chọn Thư mới từ lịch tự động', exact: true }),
   ).toBeVisible();
 });

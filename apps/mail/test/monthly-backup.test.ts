@@ -46,6 +46,7 @@ function monthlyFixture(large = false) {
     },
   ];
   const source: BackupSource = {
+    quota: async () => ({ used: 80, limit: 100 }),
     snapshot: async () => [
       { path: '../Hộp thư/../../evil\\name', uidValidity: '17', upperUid: messages.length },
     ],

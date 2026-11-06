@@ -1,3 +1,5 @@
+import type { MailQuota } from './contracts';
+
 export interface BackupRun {
   id: string;
   state: 'running' | 'complete' | 'partial' | 'error';
@@ -10,6 +12,7 @@ export interface BackupStatus {
   enabled: boolean;
   suspended?: boolean;
   nextRunAt?: number;
+  automation?: BackupAutomation;
   run: BackupRun | null;
 }
 export interface BackupItem {
@@ -45,4 +48,11 @@ export interface BackupMonth {
     updatedAt: string;
   };
   error?: string;
+}
+export interface BackupAutomation {
+  thresholdPercent: 80;
+  state: 'pending' | 'below' | 'above' | 'unavailable' | 'error';
+  checkedAt?: number;
+  quota?: MailQuota;
+  nextBackupAt?: number;
 }

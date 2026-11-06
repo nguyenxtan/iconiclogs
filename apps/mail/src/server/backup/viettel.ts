@@ -12,6 +12,9 @@ export class ViettelBackupSource implements BackupSource {
   constructor(credentials: Credentials, config: ProviderConfig) {
     this.provider = new ViettelProvider(credentials, config);
   }
+  quota() {
+    return this.provider.quota();
+  }
   snapshot() {
     return this.provider.connection(async (client) => {
       const boxes = (await client.list()).filter((box) => !box.flags.has('\\Noselect'));

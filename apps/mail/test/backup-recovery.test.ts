@@ -55,6 +55,7 @@ function fixture() {
     getAlarm: async () => alarm,
   };
   const source: BackupSource = {
+    quota: async () => ({ used: 80, limit: 100 }),
     snapshot: async () => {
       providerCalls++;
       return [{ path: 'INBOX', uidValidity: '1', upperUid: 1 }];
@@ -234,7 +235,8 @@ for (const kind of ['daily', 'cleanup'] as const)
       await f.reopen().status(credentials.email);
       if (kind === 'daily') {
         await f.reopen().configure(credentials, true);
-        await f.reopen().start(credentials);
+        vi.setSystemTime(Date.now() + 1000);
+        await f.fire();
       } else {
         await f.retire(Date.now() - 1, 1000);
         await f.fire();

@@ -92,8 +92,10 @@ Tìm kiếm/lọc, thư mục, thao tác nhiều thư, sao, Thùng rác, reply-a
 Bcc, chữ ký/danh bạ và bản nháp tự lưu. `PersonalState` giữ dữ liệu cá nhân mã hóa,
 `BackupCoordinator` quản lý sao lưu và restore; migration v2 thêm hai DO này.
 Backup cần private R2 binding `BACKUP_BUCKET` và secret `BACKUP_KEY` (32 byte Base64,
-khác SESSION_KEY). Chỉ bật lịch sao lưu qua Cài đặt → Sao lưu của từng tài khoản.
-Tắt lịch thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
+khác SESSION_KEY). Sao lưu tự động theo ngưỡng 80% chỉ bật qua Cài đặt → Sao lưu của từng tài khoản.
+Kiểm tra quota Viettel mỗi giờ, chỉ bắt đầu capture khi dùng từ 80%; nếu vẫn trên
+ngưỡng, các lượt cập nhật cách nhau tối thiểu 24 giờ. Quota thiếu/lỗi không tự
+khởi động capture. Tắt tự động thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
 không xóa nguồn. Giới hạn thư 10 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
 
 Kho chính là ZIP nén theo hộp thư/năm/tháng (ngày nhận UTC+7), mã hóa trên R2;

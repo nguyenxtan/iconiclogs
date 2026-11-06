@@ -16,6 +16,7 @@ function fixture() {
   let oversized = false;
   let revoked = false;
   const source: BackupSource = {
+    quota: async () => ({ used: 80, limit: 100 }),
     snapshot: async () => [{ path: 'INBOX', uidValidity: '5', upperUid: 1 }],
     batch: async (folder, cursor) => ({
       cursor: 1,
@@ -371,7 +372,7 @@ describe('encrypted mailbox backups', () => {
         vi.setSystemTime(retry);
       }
       expect(attempts).toBe(6);
-      expect(delays).toEqual([30000, 60000, 120000, 240000, 480000, 24 * 60 * 60 * 1000]);
+      expect(delays).toEqual([30000, 60000, 120000, 240000, 480000, 60 * 60 * 1000]);
       expect((await f.service.status(credentials.email)).run?.errors.join(' ')).toContain(
         'Đã hết lượt',
       );

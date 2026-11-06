@@ -16,6 +16,7 @@ import {
 } from './backupState';
 import { Icon } from './Icon';
 import { MonthlyBackups, monthLabel } from './MonthlyBackups';
+import { BackupAutomationPanel } from './BackupAutomationPanel';
 
 export interface BackupPanelProps {
   api: MailApi;
@@ -41,15 +42,16 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
   const [status, setStatus] = useState<BackupStatus | null>(null);
   const [catalog, setCatalog] = useState<BackupItem[] | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const selectedMonthRef = useRef('');
   const [archiveRevision, setArchiveRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [operation, setOperation] = useState('');
   const busy = useRef(false),
     alive = useRef(true),
     pause = useRef(false);
+  const statusRevision = useRef(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [optIn, setOptIn] = useState(false);
   const [from, setFrom] = useState(''),
     [to, setTo] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -106,6 +108,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
   }
   async function refresh() {
     if (busy.current) return;
+    statusRevision.current++;
     busy.current = true;
     setOperation('refresh');
     setNotice(null);
@@ -142,10 +145,77 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
       pause.current = true;
     };
   }, [api, session.email]);
+  useEffect(() => {
+    if (!status?.enabled || status.suspended) return;
+    let cancelled = false;
+    let previousRun = status.run;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      if (busy.current) {
+        timer = setTimeout(poll, 2000);
+        return;
+      }
+      const revision = statusRevision.current;
+      let delay = 60000;
+      try {
+        const next = await api.backupStatus();
+        if (cancelled || !alive.current) return;
+        if (revision === statusRevision.current && !busy.current) {
+          setStatus(next);
+          const changed =
+            next.run?.id !== previousRun?.id ||
+            next.run?.state !== previousRun?.state ||
+            next.run?.captured !== previousRun?.captured;
+          previousRun = next.run;
+          if (changed) {
+            setArchiveRevision((value) => value + 1);
+            const month = selectedMonthRef.current;
+            if (month) {
+              try {
+                const items = await api.backupCatalog(month);
+                if (
+                  !cancelled &&
+                  alive.current &&
+                  revision === statusRevision.current &&
+                  !busy.current &&
+                  month === selectedMonthRef.current
+                ) {
+                  setCatalog(items);
+                  setCatalogError(null);
+                }
+              } catch (error) {
+                if (
+                  !cancelled &&
+                  alive.current &&
+                  revision === statusRevision.current &&
+                  month === selectedMonthRef.current
+                ) {
+                  setCatalog(null);
+                  setCatalogError(errorMessage(error));
+                  onError(error);
+                }
+              }
+            }
+          }
+          if (!next.enabled || next.suspended) return;
+          if (next.automation?.state === 'pending') delay = 2000;
+        }
+      } catch (error) {
+        if (!cancelled && alive.current && revision === statusRevision.current) report(error);
+      }
+      if (!cancelled) timer = setTimeout(poll, delay);
+    }
+    timer = setTimeout(poll, status.automation?.state === 'pending' ? 2000 : 60000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [api, session.email, status?.enabled, status?.suspended]);
   async function openMonth(month: string) {
     if (busy.current) return;
     busy.current = true;
     setOperation('catalog');
+    selectedMonthRef.current = month;
     setSelectedMonth(month);
     setCatalog(null);
     setCatalogError(null);
@@ -165,6 +235,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
   }
   async function configure(enabled: boolean) {
     if (busy.current) return;
+    statusRevision.current++;
     busy.current = true;
     setOperation('configure');
     setNotice(null);
@@ -172,7 +243,6 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
       const result = await api.backupConfigure(enabled, session.csrfToken);
       if (alive.current) {
         setStatus(result);
-        setOptIn(false);
       }
     } catch (error) {
       report(error);
@@ -183,6 +253,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
   }
   async function capture(resume: boolean) {
     if (busy.current) return;
+    statusRevision.current++;
     busy.current = true;
     pause.current = false;
     setOperation('capture');
@@ -215,6 +286,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
   }
   async function restore(prepared: RestoreBatch, resume = false) {
     if (busy.current || storageBlocked) return;
+    statusRevision.current++;
     let index = journalRef.current.length - 1;
     if (!resume) {
       const next = [...journalRef.current, prepared];
@@ -343,6 +415,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
           selectedMonth={selectedMonth}
           onSelect={(month) => void openMonth(month)}
           onBusy={(value) => {
+            if (value) statusRevision.current++;
             busy.current = value;
             setOperation(value ? 'pack' : '');
           }}
@@ -366,90 +439,11 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
         </div>
       ) : (
         <>
-          <div className="backup-policy">
-            <div className="backup-policy-label">
-              <Icon name="lock" size={21} />
-              <div>
-                <h4>Sao lưu hằng ngày</h4>
-                <p>
-                  {status.suspended
-                    ? 'Tạm dừng · cần cập nhật quyền truy cập'
-                    : status.enabled
-                      ? 'Đã bật cho tài khoản này'
-                      : 'Chưa bật · chỉ chạy khi bạn yêu cầu'}
-                </p>
-              </div>
-              <span className={`backup-badge ${status.enabled ? 'active' : ''}`}>
-                {status.suspended ? 'Tạm dừng' : status.enabled ? 'Đang bật' : 'Thủ công'}
-              </span>
-            </div>
-            <p>
-              Để chạy khi bạn không đăng nhập, hệ thống giữ thông tin truy cập hộp thư dưới dạng mã
-              hóa. Khi tắt, quyền truy cập đã lưu được thu hồi; các bản sao hiện có vẫn được giữ.
-            </p>
-            {status.nextRunAt && status.enabled && (
-              <p>
-                <strong>Lượt dự kiến tiếp theo:</strong> {formatDate(status.nextRunAt)}
-              </p>
-            )}
-            {status.suspended && (
-              <div className="backup-optin">
-                <p>
-                  Mật khẩu hoặc quyền truy cập Viettel đã thay đổi. Sau khi đăng nhập bằng mật khẩu
-                  mới, cập nhật quyền sao lưu để tiếp tục.
-                </p>
-                <button
-                  type="button"
-                  className="button primary"
-                  disabled={!!operation}
-                  onClick={() => void configure(true)}
-                >
-                  Cập nhật quyền sao lưu
-                </button>
-              </div>
-            )}
-            {status.enabled ? (
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!!operation}
-                onClick={() => void configure(false)}
-              >
-                {operation === 'configure' ? 'Đang cập nhật…' : 'Tắt sao lưu hằng ngày'}
-              </button>
-            ) : optIn ? (
-              <div className="backup-optin">
-                <p>Bạn đồng ý lưu quyền truy cập đã mã hóa để tự động sao lưu hộp thư mỗi ngày?</p>
-                <div className="settings-actions">
-                  <button
-                    type="button"
-                    className="button primary"
-                    disabled={!!operation}
-                    onClick={() => void configure(true)}
-                  >
-                    Bật sao lưu hằng ngày
-                  </button>
-                  <button
-                    type="button"
-                    className="button subtle"
-                    disabled={!!operation}
-                    onClick={() => setOptIn(false)}
-                  >
-                    Để sau
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="button secondary"
-                disabled={!!operation}
-                onClick={() => setOptIn(true)}
-              >
-                Thiết lập sao lưu hằng ngày
-              </button>
-            )}
-          </div>
+          <BackupAutomationPanel
+            status={status}
+            operation={operation}
+            onConfigure={(enabled) => void configure(enabled)}
+          />
           <div className="backup-run">
             <div className="backup-run-heading">
               <h4>Lượt sao lưu gần nhất</h4>
