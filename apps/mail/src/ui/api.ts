@@ -1,4 +1,4 @@
-import type { BackupStatus, BackupItem, BackupRestore } from '../shared/backup';
+import type { BackupStatus, BackupItem, BackupRestore, BackupMonth } from '../shared/backup';
 import type {
   Folder,
   MailFolder,
@@ -47,7 +47,12 @@ export interface MailApi {
   backupConfigure(enabled: boolean, csrf: string): Promise<BackupStatus>;
   backupStart(csrf: string): Promise<BackupStatus>;
   backupStep(csrf: string): Promise<BackupStatus>;
-  backupCatalog(): Promise<BackupItem[]>;
+  backupCatalog(month?: string): Promise<BackupItem[]>;
+  backupMonths(): Promise<BackupMonth[]>;
+  backupPackMonth(month: string, csrf: string): Promise<BackupMonth>;
+  backupPackMonthStep(month: string, csrf: string): Promise<BackupMonth>;
+  backupMonthDownloadUrl(month: string): string;
+  checkBackupMonthDownload(month: string): Promise<void>;
   backupDownload(id: string): Promise<Blob>;
   backupRestore(
     id: string,
@@ -118,7 +123,34 @@ export const liveApi: MailApi = {
   backupConfigure: (enabled, csrf) => mutate('/backups/configure', csrf, { enabled }),
   backupStart: (csrf) => mutate('/backups/start', csrf),
   backupStep: (csrf) => mutate('/backups/step', csrf),
-  backupCatalog: () => request('/backups/catalog'),
+  backupCatalog: (month) =>
+    request('/backups/catalog' + (month ? '?month=' + encodeURIComponent(month) : '')),
+  backupMonths: () => request('/backups/months'),
+  backupPackMonth: (month, csrf) =>
+    mutate(`/backups/months/${encodeURIComponent(month)}/pack`, csrf),
+  backupPackMonthStep: (month, csrf) =>
+    mutate(`/backups/months/${encodeURIComponent(month)}/step`, csrf),
+  backupMonthDownloadUrl: (month) => `/api/backups/months/${encodeURIComponent(month)}/download`,
+  checkBackupMonthDownload: async (month) => {
+    const response = await fetch(`/api/backups/months/${encodeURIComponent(month)}/download`, {
+      method: 'HEAD',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(90_000),
+    });
+    if (
+      !response.ok ||
+      response.headers.get('Content-Type')?.split(';')[0]?.trim() !== 'application/zip'
+    ) {
+      throw new MailApiError(
+        response.status === 401 ? 401 : response.ok ? 502 : response.status,
+        response.status === 401 ? 'UNAUTHORIZED' : 'BACKUP_DOWNLOAD_FAILED',
+        response.status === 401
+          ? 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.'
+          : 'Chưa tải được gói ZIP. Vui lòng thử lại.',
+      );
+    }
+  },
   backupDownload: (id) => download('/backups/' + encodeURIComponent(id) + '/download'),
   backupRestore: (id, folder, requestId, csrf) =>
     mutate('/backups/restore', csrf, { id, folder, requestId }),

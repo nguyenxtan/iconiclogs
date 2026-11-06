@@ -228,3 +228,28 @@ Server xác minh metadata/giới hạn 128 KiB, tạo HTML escaped thành panel 
 ký và text/plain với tiêu đề phân tách rõ. In-Reply-To/To/Cc/Bcc/file và chống gửi
 trùng giữ nguyên. Review chéo và UI tests bao gồm mở/đóng khối, draft reload,
 remove cancel/confirm, recipient dedup, HTML độc hại/literal >, file và chữ ký.
+
+## Gói sao lưu tháng — 06/11/2026
+
+Chủ dự án chốt quản lý theo hộp thư/năm/tháng, mỗi tháng một gói ZIP gồm thư
+`.eml` nguyên bản theo thư mục nguồn và manifest kiểm tra toàn vẹn. Tháng dựa
+trên ngày nhận tại Việt Nam. Giao diện chính hiển thị gói tháng, số thư, dung
+lượng và thời điểm cập nhật; mở tháng mới xem/khôi phục từng thư hoặc chọn cả
+tháng vào một thư mục đích. ZIP tải về mở được bằng công cụ phổ biến.
+
+ZIP được nén trước rồi mã hóa khi lưu trên R2 riêng tư. Đóng gói, xác minh và
+công bố chạy thành các bước có checkpoint, không giữ cả tháng thư trong RAM.
+Một gói đã công bố vẫn dùng được trong lúc cập nhật gói mới. Thư staging và
+bản sao cũ chỉ được dọn sau khi dữ liệu trong gói thay thế đã được xác minh và
+chỉ mục đọc/khôi phục đã chuyển thành công. Không đổi mật khẩu, MX hay thư gốc.
+
+Các lượt sao lưu mới tự gom tháng sau khi đọc thư; bản sao đã có được gom qua
+thao tác cập nhật gói tháng. Tháng đang có thêm dữ liệu hiện cần cập nhật, không
+gọi là đầy đủ chỉ vì đã tạo ZIP. Trạng thái lượt sao lưu partial/lỗi và thư quá
+giới hạn vẫn hiện rõ; lịch hằng ngày cần opt-in như trước. Chống khôi phục trùng
+và khóa kết quả chưa xác định được giữ khi nguồn đọc chuyển sang gói tháng.
+
+Gói thay thế có 24 giờ chờ trước khi dọn để lượt tải đang chạy vẫn đọc được.
+ZIP32 giới hạn dưới 4 GiB và dưới 65.534 thư; vượt giới hạn giữ nguyên dữ liệu và
+báo rõ. HEAD chỉ kiểm tra metadata/quyền truy cập, GET truyền ZIP từng khối;
+giao diện kiểm tra HEAD trước tải và xử lý lỗi/hết phiên qua luồng chung.

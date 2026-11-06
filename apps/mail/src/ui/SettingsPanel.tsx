@@ -396,29 +396,33 @@ export function SettingsPanel({
             hidden={tab !== 2}
             className="settings-section"
           >
-            <BackupPanel api={api} session={session} folders={folders} onError={onError} />
+            {tab === 2 && (
+              <BackupPanel api={api} session={session} folders={folders} onError={onError} />
+            )}
           </section>
         </div>
-        <footer className="settings-footer">
-          {notice ? (
-            <p
-              role={notice.error ? 'alert' : 'status'}
-              className={notice.error ? 'settings-error' : 'settings-saved'}
+        {(tab !== 2 || dirty) && (
+          <footer className="settings-footer">
+            {notice ? (
+              <p
+                role={notice.error ? 'alert' : 'status'}
+                className={notice.error ? 'settings-error' : 'settings-saved'}
+              >
+                {notice.text}
+              </p>
+            ) : (
+              <p>{dirty ? 'Có thay đổi chưa lưu' : 'Cài đặt riêng cho tài khoản của bạn'}</p>
+            )}
+            <button
+              type="button"
+              className="button primary"
+              onClick={() => void save()}
+              disabled={saving || !dirty}
             >
-              {notice.text}
-            </p>
-          ) : (
-            <p>{dirty ? 'Có thay đổi chưa lưu' : 'Cài đặt riêng cho tài khoản của bạn'}</p>
-          )}
-          <button
-            type="button"
-            className="button primary"
-            onClick={() => void save()}
-            disabled={saving || !dirty}
-          >
-            {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
-          </button>
-        </footer>
+              {saving ? 'Đang lưu…' : 'Lưu thay đổi'}
+            </button>
+          </footer>
+        )}
       </div>
     </dialog>
   );

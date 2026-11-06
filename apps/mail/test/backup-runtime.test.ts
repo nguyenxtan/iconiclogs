@@ -83,11 +83,28 @@ it('runs encrypted capture, R2 integrity, daily revoke and RPC scope checks in n
       expect(response.status, await response.clone().text()).toBe(200);
       return response.json() as Promise<any>;
     };
+    expect(await call('expired-resume')).toEqual({
+      expiredFailure: true,
+      state: 'ready',
+      restarted: true,
+      intact: true,
+    });
     expect((await call('scope')).error.code).toBe('BACKUP_SCOPE');
     expect((await call('revoked')).error.code).toBe('BACKUP_REVOKED');
-    expect((await call('large')).run.state).toBe('complete');
+    const large = await call('large');
+    expect(large.run.state).toBe('complete');
+    expect(large.nativeBoundary.sizes).toContain(10 * 1024 * 1024);
+    expect(large.nativeBoundary.maximumCarry).toBeGreaterThan(6 * 1024 * 1024 - 128 * 1024);
+    expect(large.nativeBoundary.maximumCarry).toBeLessThanOrEqual(6 * 1024 * 1024 + 29);
     expect((await call('capture')).run.state).toBe('complete');
     expect((await call('catalog')).length).toBe(1);
+    expect((await call('months'))[0].state).toBe('ready');
+    expect((await call('monthly-head')).type).toBe('application/zip');
+    expect(
+      new Uint8Array(
+        await (await runtime.dispatchFetch('http://test.local/monthly-download')).arrayBuffer(),
+      ).slice(0, 4),
+    ).toEqual(new Uint8Array([80, 75, 3, 4]));
     expect(await (await runtime.dispatchFetch('http://test.local/download')).text()).toContain(
       'Original MIME',
     );

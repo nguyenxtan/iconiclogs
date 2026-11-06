@@ -70,6 +70,9 @@ async function syntheticBackup(page: Page) {
       case '/api/backups/catalog':
         json = catalog;
         break;
+      case '/api/backups/months':
+        json = [{ month: '2026-11', count: catalog.length, rawBytes: 48, state: 'pending' }];
+        break;
       case '/api/backups/configure':
         enabled = request.postDataJSON().enabled;
         configured.push(enabled);
@@ -134,6 +137,7 @@ async function syntheticBackup(page: Page) {
   await page.goto(mailUrl);
   await page.getByRole('button', { name: 'Cài đặt và sao lưu' }).first().click();
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
+  await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   return {
     restores,
     configured,
@@ -194,6 +198,7 @@ test('synthetic backup API: explicit daily consent, revoke, capture steps and sa
   await page.getByRole('button', { name: 'Đóng cài đặt', exact: true }).click();
   await page.getByRole('button', { name: 'Cài đặt và sao lưu' }).first().click();
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
+  await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   await expect(
     page.getByRole('checkbox', { name: 'Chọn Lịch tàu thử nghiệm', exact: true }),
   ).toBeDisabled();
@@ -237,6 +242,7 @@ test('suspended daily backup shows a refresh action instead of an active schedul
   await page.goto(mailUrl);
   await page.getByRole('button', { name: 'Cài đặt và sao lưu', exact: true }).first().click();
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
+  await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   await expect(page.locator('.backup-policy .backup-badge')).toHaveText('Tạm dừng');
   await expect(page.getByText('Lượt dự kiến tiếp theo:', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Cập nhật quyền sao lưu', exact: true }).click();
@@ -323,6 +329,7 @@ test('reopened interrupted restore remains uncertain and locked instead of looki
   await page.reload();
   await page.getByRole('button', { name: 'Cài đặt và sao lưu', exact: true }).first().click();
   await page.getByRole('tab', { name: 'Sao lưu', exact: true }).click();
+  await page.getByRole('button', { name: 'Xem tháng 11/2026', exact: true }).click();
   await expect(
     page.getByText('0 thư đã khôi phục · 1 thư chưa xác định', { exact: true }),
   ).toBeVisible();

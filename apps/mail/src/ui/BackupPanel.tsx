@@ -15,6 +15,7 @@ import {
   type RestoreBatch,
 } from './backupState';
 import { Icon } from './Icon';
+import { MonthlyBackups, monthLabel } from './MonthlyBackups';
 
 export interface BackupPanelProps {
   api: MailApi;
@@ -39,6 +40,8 @@ const runLabels = {
 export function BackupPanel({ api, session, folders, onError }: BackupPanelProps) {
   const [status, setStatus] = useState<BackupStatus | null>(null);
   const [catalog, setCatalog] = useState<BackupItem[] | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [archiveRevision, setArchiveRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [operation, setOperation] = useState('');
   const busy = useRef(false),
@@ -106,7 +109,10 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
     busy.current = true;
     setOperation('refresh');
     setNotice(null);
-    const results = await Promise.allSettled([api.backupStatus(), api.backupCatalog()]);
+    const results = await Promise.allSettled([
+      api.backupStatus(),
+      selectedMonth ? api.backupCatalog(selectedMonth) : Promise.resolve(null),
+    ] as const);
     if (alive.current) {
       if (results[0].status === 'fulfilled') setStatus(results[0].value);
       else {
@@ -123,6 +129,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
       }
       setOperation('');
       setLoading(false);
+      setArchiveRevision((value) => value + 1);
     }
     busy.current = false;
   }
@@ -135,6 +142,27 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
       pause.current = true;
     };
   }, [api, session.email]);
+  async function openMonth(month: string) {
+    if (busy.current) return;
+    busy.current = true;
+    setOperation('catalog');
+    setSelectedMonth(month);
+    setCatalog(null);
+    setCatalogError(null);
+    setSelected(new Set());
+    setFrom('');
+    setTo('');
+    try {
+      const items = await api.backupCatalog(month);
+      if (alive.current) setCatalog(items);
+    } catch (error) {
+      if (alive.current) setCatalogError(errorMessage(error));
+      onError(error);
+    } finally {
+      busy.current = false;
+      if (alive.current) setOperation('');
+    }
+  }
   async function configure(enabled: boolean) {
     if (busy.current) return;
     busy.current = true;
@@ -169,7 +197,10 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
         if (alive.current) setStatus(result);
       }
       if (alive.current) {
-        const items = await api.backupCatalog();
+        setArchiveRevision((value) => value + 1);
+      }
+      if (alive.current && selectedMonth) {
+        const items = await api.backupCatalog(selectedMonth);
         if (alive.current) {
           setCatalog(items);
           setCatalogError(null);
@@ -279,7 +310,7 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
       <div className="settings-section-heading backup-title">
         <div>
           <h3>Giữ một bản sao an toàn</h3>
-          <p>Bản sao riêng tư, được mã hóa. Khôi phục sẽ thêm thư vào hộp thư bạn chọn.</p>
+          <p>Gói ZIP theo năm và tháng, riêng tư và được mã hóa khi lưu trên cloud.</p>
         </div>
         <button
           type="button"
@@ -296,6 +327,30 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
           <Icon name="info" size={18} />
           <span>{notice}</span>
         </div>
+      )}
+      {status?.run && status.run.state !== 'complete' && (
+        <p className="notice warning" role="status">
+          {status.run.state === 'running' ? 'Lượt sao lưu đang chạy' : 'Lượt sao lưu chưa hoàn tất'}
+          . Gói tháng chỉ gồm các thư đã lưu.
+        </p>
+      )}
+      {!loading && status && (
+        <MonthlyBackups
+          api={api}
+          csrf={session.csrfToken}
+          revision={archiveRevision}
+          locked={locked}
+          selectedMonth={selectedMonth}
+          onSelect={(month) => void openMonth(month)}
+          onBusy={(value) => {
+            busy.current = value;
+            setOperation(value ? 'pack' : '');
+          }}
+          onPacked={() => {
+            if (selectedMonth) void openMonth(selectedMonth);
+          }}
+          onError={onError}
+        />
       )}
       {loading ? (
         <p className="settings-empty" role="status">
@@ -476,16 +531,20 @@ export function BackupPanel({ api, session, folders, onError }: BackupPanelProps
           </div>
         </>
       )}
-      <div className="backup-catalog-heading">
-        <div>
-          <h4>Thư đã sao lưu</h4>
-          <p>
-            {catalog
-              ? `${catalog.length.toLocaleString('vi-VN')} bản sao trong kho riêng tư`
-              : 'Danh mục chưa khả dụng'}
-          </p>
+      {selectedMonth && (
+        <div className="backup-catalog-heading backup-month-detail">
+          <div>
+            <h4>Thư trong tháng {monthLabel(selectedMonth)}</h4>
+            <p>
+              {catalog
+                ? `${catalog.length.toLocaleString('vi-VN')} thư đã sao lưu. Có thể chọn cả tháng hoặc từng thư để khôi phục.`
+                : operation === 'catalog'
+                  ? 'Đang đọc thư trong tháng…'
+                  : 'Danh mục chưa khả dụng'}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       {catalogError && (
         <div className="notice warning" role="alert">
           {catalogError}

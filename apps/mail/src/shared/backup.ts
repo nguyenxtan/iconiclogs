@@ -30,3 +30,19 @@ export interface BackupRestore {
   id: string;
   targetFolder: string;
 }
+export interface BackupMonth {
+  month: string;
+  count: number;
+  rawBytes: number;
+  state: 'pending' | 'packing' | 'ready' | 'stale' | 'error';
+  progress?: { processed: number; total: number };
+  archive?: {
+    id: string;
+    name: string;
+    count: number;
+    rawBytes: number;
+    zipBytes: number;
+    updatedAt: string;
+  };
+  error?: string;
+}

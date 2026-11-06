@@ -51,8 +51,23 @@ export class BackupCoordinator extends DurableObject<BackupEnv> {
   step(credentials: Credentials) {
     return captureRpc(() => this.service.step(credentials));
   }
-  catalog(email: string) {
-    return captureRpc(() => this.service.catalog(email));
+  catalog(email: string, month?: string) {
+    return captureRpc(() => this.service.catalog(email, month));
+  }
+  months(email: string) {
+    return captureRpc(() => this.service.months(email));
+  }
+  packMonth(email: string, month: string) {
+    return captureRpc(() => this.service.packMonth(email, month));
+  }
+  packMonthStep(email: string, month: string) {
+    return captureRpc(() => this.service.packMonthStep(email, month));
+  }
+  describeMonth(email: string, month: string) {
+    return captureRpc(() => this.service.describeMonth(email, month));
+  }
+  downloadMonth(email: string, month: string) {
+    return captureRpc(() => this.service.downloadMonth(email, month));
   }
   download(email: string, id: string) {
     return captureRpc(() => this.service.download(email, id));

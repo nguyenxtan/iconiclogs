@@ -4,6 +4,8 @@ import type { BackupItem, BackupRestore, BackupRun, BackupStatus } from '../../s
 import { backupError, backupKey, digest, open, seal } from './crypto';
 import { isAuthError, MailError } from '../core/errors';
 import { DefiniteRestoreFailure } from './restore';
+import { MonthlyArchive, type ArchiveBucket } from './monthly';
+import { monthOf, validMonth } from './zip';
 
 export interface BackupFolder {
   path: string;
@@ -34,14 +36,17 @@ export interface BackupStore {
   get<T>(key: string): Promise<T | undefined>;
   put(key: string, value: unknown): Promise<unknown>;
   delete(key: string): Promise<unknown>;
-  list<T>(options: { prefix: string }): Promise<Map<string, T>>;
+  list<T>(options: {
+    prefix: string;
+    startAfter?: string;
+    limit?: number;
+  }): Promise<Map<string, T>>;
   setAlarm(time: number): Promise<unknown>;
   deleteAlarm(): Promise<unknown>;
+  getAlarm?(): Promise<number | null>;
 }
-export interface BackupBucket {
-  put(key: string, bytes: Uint8Array): Promise<unknown>;
-  get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
-}
+export interface BackupBucket extends ArchiveBucket {}
+
 interface RunState {
   run: BackupRun;
   folders: BackupFolder[];
@@ -92,6 +97,7 @@ const encoder = new TextEncoder(),
 /** Mailbox-specific service. All persisted content and metadata use authenticated encryption. */
 export class BackupService {
   private scope = '';
+  private email = '';
   private key?: CryptoKey;
   private queue: Promise<unknown> = Promise.resolve();
   constructor(
@@ -114,6 +120,7 @@ export class BackupService {
       throw backupError('BACKUP_SCOPE', 'Không có quyền truy cập bản sao lưu.', 403);
     if (!existing) await this.store.put('scope', scope);
     this.scope = scope;
+    this.email = email.trim().toLowerCase();
   }
   private async get<T>(name: string): Promise<T | undefined> {
     const bytes = await this.store.get<Uint8Array>(name);
@@ -124,15 +131,29 @@ export class BackupService {
       : undefined;
   }
   private async put(name: string, value: unknown) {
-    await this.store.put(
-      name,
-      await seal(encoder.encode(JSON.stringify(value)), this.key!, `${this.scope}:${name}`),
+    const encrypted = await seal(
+      encoder.encode(JSON.stringify(value)),
+      this.key!,
+      `${this.scope}:${name}`,
     );
+    if (encrypted.length > 128 * 1024)
+      throw backupError(
+        'BACKUP_LIMIT',
+        'Thông tin sao lưu vượt giới hạn lưu trữ. Bản gốc vẫn được giữ nguyên.',
+        409,
+      );
+    await this.store.put(name, encrypted);
   }
   private async serial<T>(email: string, operation: () => Promise<T>): Promise<T> {
     const work = this.queue.then(async () => {
       await this.identity(email);
-      return operation();
+      try {
+        await this.ensureIndex();
+        await this.monthly().maintain();
+        return await operation();
+      } finally {
+        await this.reconcileAlarm();
+      }
     });
     this.queue = work.catch(() => undefined);
     return work;
@@ -155,10 +176,9 @@ export class BackupService {
         this.source(credentials); // Validate provider configuration and current account allowlist before saving credentials.
         const nextRunAt = Date.now() + day;
         await this.put('daily', { credentials, nextRunAt });
-        await this.store.setAlarm(nextRunAt);
       } else {
         await this.store.delete('daily');
-        await this.store.deleteAlarm();
+        await this.monthly().maintain();
       }
       return this.currentStatus();
     });
@@ -180,7 +200,10 @@ export class BackupService {
       const folders = await this.source(credentials).snapshot();
       if (folders.length > 100) throw Error();
       state.folders = folders;
-      if (!state.folders.length) {
+      if (
+        !state.folders.length &&
+        !(await this.monthly().months()).some((month) => month.state !== 'ready')
+      ) {
         run.state = 'complete';
         run.finishedAt = new Date().toISOString();
       }
@@ -189,7 +212,6 @@ export class BackupService {
       run.finishedAt = new Date().toISOString();
     }
     await this.put('run', state);
-    if (await this.get<Daily>('daily')) await this.store.setAlarm(Date.now() + 5000);
     return this.currentStatus();
   }
   start(credentials: Credentials) {
@@ -237,11 +259,12 @@ export class BackupService {
       const folder = state.folders[state.index];
       if (folder) {
         const verified = new Set<string>();
+        const archiveReader = this.monthly();
         const known: KnownMessage = async (box, uid) => {
           const seen = await this.get<{ id: string }>(await this.seenKey(box, uid));
           if (!seen) return undefined;
           try {
-            const { item } = await this.content(seen.id);
+            const { item } = await this.content(seen.id, archiveReader);
             if (
               item.folder !== box.path ||
               item.uidValidity !== box.uidValidity ||
@@ -287,7 +310,7 @@ export class BackupService {
               `${this.scope}/${id}`,
               await seal(message.raw, this.key!, `${this.scope}:mime:${id}`),
             );
-            await this.put(name, {
+            await this.indexed({
               id,
               folder: folder.path,
               uid: message.uid,
@@ -315,6 +338,12 @@ export class BackupService {
                 throw error;
             }
           if (!intact) {
+            const month = monthOf(message.internalDate);
+            const revisionKey = `month-stat:${month}`;
+            const stats = await this.get<{ count: number; rawBytes: number; revision: number }>(
+              revisionKey,
+            );
+            if (stats) await this.put(revisionKey, { ...stats, revision: stats.revision + 1 });
             // The trusted original MIME can repair a missing or corrupt deterministic object.
             await this.bucket!.put(
               `${this.scope}/${id}`,
@@ -322,6 +351,7 @@ export class BackupService {
             );
             await this.content(id);
           }
+          await this.indexed((await this.get<BackupItem>(name))!);
           await this.put(await this.seenKey(folder, message.uid), { id });
           captured++;
         }
@@ -332,8 +362,17 @@ export class BackupService {
           state.cursor = 0;
         }
       }
-      if (state.index >= state.folders.length)
-        state.run.state = state.run.errors.length ? 'partial' : 'complete';
+      if (state.index >= state.folders.length) {
+        const monthly = this.monthly();
+        const pending = (await monthly.months()).find((month) => month.state !== 'ready');
+        if (pending) {
+          const result =
+            pending.state === 'pending' || pending.state === 'stale'
+              ? await monthly.start(pending.month)
+              : await monthly.step(pending.month);
+          if (result.state === 'error') throw Error('monthly packaging interrupted');
+        } else state.run.state = state.run.errors.length ? 'partial' : 'complete';
+      }
     } catch (error) {
       this.fail(state, error);
     }
@@ -344,21 +383,133 @@ export class BackupService {
   step(credentials: Credentials) {
     return this.serial(credentials.email, () => this.advance(credentials));
   }
-  catalog(email: string) {
+  private async indexed(item: BackupItem) {
+    const month = monthOf(item.internalDate),
+      membership = `month-item:${month}:${item.id}`;
+    if (await this.get(membership)) return;
+    const previous = (await this.get<{ count: number; rawBytes: number; revision: number }>(
+      `month-stat:${month}`,
+    )) ?? { count: 0, rawBytes: 0, revision: 0 };
+    await this.put('index-pending', {
+      item,
+      month,
+      stats: {
+        count: previous.count + 1,
+        rawBytes: previous.rawBytes + item.size,
+        revision: previous.revision + 1,
+      },
+    });
+    await this.replayIndex();
+  }
+  private async replayIndex() {
+    const pending = await this.get<{
+      item: BackupItem;
+      month: string;
+      stats: { count: number; rawBytes: number; revision: number };
+    }>('index-pending');
+    if (!pending) return;
+    // The intent precedes item publication. Replay publishes all metadata even if the
+    // provider no longer has the message when a lost write response is retried.
+    await this.put(`item:${pending.item.id}`, pending.item);
+    await this.put(`month-stat:${pending.month}`, pending.stats);
+    await this.put(`month-item:${pending.month}:${pending.item.id}`, pending.item);
+    await this.store.delete('index-pending');
+  }
+  private async ensureIndex() {
+    await this.replayIndex();
+    if (await this.get('index-ready')) return;
+    let cursor = (await this.get<string>('index-cursor')) ?? '';
+    // Legacy metadata is indexed once; every 32 rows is a durable restart point.
+    // This migration reads no MIME and can resume if the request is interrupted.
+    while (true) {
+      const rows = await this.store.list<Uint8Array>({
+        prefix: 'item:',
+        ...(cursor ? { startAfter: cursor } : {}),
+        limit: 32,
+      });
+      for (const name of rows.keys()) {
+        await this.indexed((await this.get<BackupItem>(name))!);
+        cursor = name;
+      }
+      if (cursor) await this.put('index-cursor', cursor);
+      if (rows.size < 32) break;
+    }
+    await this.put('index-ready', true);
+  }
+  private async indexedList<T>(
+    prefix: string,
+    startAfter?: string,
+    limit?: number,
+  ): Promise<{ name: string; value: T }[]> {
+    const rows = await this.store.list<Uint8Array>({
+      prefix,
+      ...(startAfter ? { startAfter } : {}),
+      ...(limit ? { limit } : {}),
+    });
+    const result: { name: string; value: T }[] = [];
+    for (const name of rows.keys()) result.push({ name, value: (await this.get<T>(name))! });
+    return result;
+  }
+  private async items() {
+    const entries = await this.store.list<Uint8Array>({ prefix: 'item:' });
+    const items: BackupItem[] = [];
+    for (const name of entries.keys()) items.push((await this.get<BackupItem>(name))!);
+    return items.sort((a, b) => b.internalDate.localeCompare(a.internalDate));
+  }
+  private monthly(): MonthlyArchive {
+    const monthly: MonthlyArchive = new MonthlyArchive({
+      scope: this.scope,
+      email: this.email,
+      key: this.key!,
+      bucket: this.bucket!,
+      get: <T>(name: string) => this.get<T>(name),
+      put: (name, value) => this.put(name, value),
+      remove: (name) => this.store.delete(name),
+      list: <T>(prefix: string, startAfter?: string, limit?: number) =>
+        this.indexedList<T>(prefix, startAfter, limit),
+      content: (id) => this.content(id, monthly),
+    });
+    return monthly;
+  }
+  catalog(email: string, month?: string) {
     return this.serial(email, async () => {
-      const entries = await this.store.list<Uint8Array>({ prefix: 'item:' });
-      const items: BackupItem[] = [];
-      for (const name of entries.keys()) items.push((await this.get<BackupItem>(name))!);
-      return items.sort((a, b) => b.internalDate.localeCompare(a.internalDate));
+      if (month !== undefined) validMonth(month);
+      return month === undefined
+        ? this.items()
+        : (await this.indexedList<BackupItem>(`month-item:${month}:`))
+            .map((row) => row.value)
+            .sort((a, b) => b.internalDate.localeCompare(a.internalDate));
     });
   }
-  private async content(id: string) {
+  months(email: string) {
+    return this.serial(email, () => this.monthly().months());
+  }
+  packMonth(email: string, month: string) {
+    return this.serial(email, () => this.monthly().start(month));
+  }
+  packMonthStep(email: string, month: string) {
+    return this.serial(email, () => this.monthly().step(month));
+  }
+  describeMonth(email: string, month: string) {
+    return this.serial(email, () => this.monthly().describe(month));
+  }
+  downloadMonth(email: string, month: string) {
+    return this.serial(email, () => this.monthly().download(month));
+  }
+  private async content(
+    id: string,
+    reader?: MonthlyArchive,
+  ): Promise<{ item: BackupItem; raw: Uint8Array }> {
     if (!/^[a-f0-9]{64}$/.test(id))
       throw backupError('BACKUP_NOT_FOUND', 'Không tìm thấy bản sao lưu.', 404);
     const item = await this.get<BackupItem>(`item:${id}`);
     if (!item) throw backupError('BACKUP_NOT_FOUND', 'Không tìm thấy bản sao lưu.', 404);
     const object = await this.bucket!.get(`${this.scope}/${id}`);
-    if (!object) throw backupError('BACKUP_CORRUPT', 'Không đọc được nội dung bản sao lưu.', 502);
+    if (!object) {
+      const raw = await (reader ?? this.monthly()).archivedContent(item);
+      if (!raw) throw backupError('BACKUP_CORRUPT', 'Không đọc được nội dung bản sao lưu.', 502);
+      return { item, raw };
+    }
     const raw = await open(
       new Uint8Array(await object.arrayBuffer()),
       this.key!,
@@ -441,6 +592,27 @@ export class BackupService {
       return { state: record.state, id, targetFolder };
     });
   }
+  private async reconcileAlarm() {
+    // Daily work and credential-free retirement share one Durable Object alarm.
+    // Recompute durable obligations after every operation; retain an earlier continuation only while work remains.
+    const now = Date.now(),
+      deadlines: number[] = [];
+    const existing = await this.store.getAlarm?.();
+    // Polling must not move an already scheduled continuation into the future.
+    const continuation = existing && existing > now ? Math.min(existing, now + 5000) : now + 5000;
+    const retired = await this.indexedList<{ deleteAfter: number }>('retired:', undefined, 1);
+    if (retired[0])
+      deadlines.push(
+        retired[0].value.deleteAfter > now ? retired[0].value.deleteAfter : continuation,
+      );
+    const daily = await this.get<Daily>('daily');
+    if (daily && !daily.suspended) {
+      const running = (await this.get<RunState>('run'))?.run.state === 'running';
+      deadlines.push(running ? continuation : Math.max(now + 1, daily.retryAt ?? daily.nextRunAt));
+    }
+    if (deadlines.length) await this.store.setAlarm(Math.min(...deadlines));
+    else await this.store.deleteAlarm();
+  }
   async alarm() {
     // Alarm has no caller credentials; the opt-in record is the sole source of authority.
     const scope = await this.store.get<string>('scope');
@@ -448,13 +620,23 @@ export class BackupService {
     this.key ??= await backupKey(this.secret);
     this.scope = scope;
     const daily = await this.get<Daily>('daily');
-    if (!daily) return;
+    if (!daily) {
+      const work = this.queue.then(async () => {
+        try {
+          await this.monthly().maintain();
+        } finally {
+          await this.reconcileAlarm();
+        }
+      });
+      this.queue = work.catch(() => undefined);
+      await work;
+      return;
+    }
     return this.serial(daily.credentials.email, async () => {
       // Re-read after acquiring the queue: disable may have revoked the record meanwhile.
       const saved = await this.get<Daily>('daily');
       if (!saved) return;
       if (saved.suspended) {
-        await this.store.deleteAlarm();
         return;
       }
       // The source factory validates current allowlist membership before any provider network.
@@ -468,7 +650,6 @@ export class BackupService {
             await this.put('run', state);
           }
           await this.store.delete('daily');
-          await this.store.deleteAlarm();
           return;
         }
         throw error;
@@ -476,7 +657,6 @@ export class BackupService {
       let status = await this.currentStatus();
       const due = saved.retryAt ?? saved.nextRunAt;
       if (status.run?.state !== 'running' && Date.now() < due) {
-        await this.store.setAlarm(due);
         return;
       }
       if (saved.retryAt && status.run?.state === 'error')
@@ -486,20 +666,18 @@ export class BackupService {
         if (status.run?.state === 'running') status = await this.advance(saved.credentials);
       }
       delete saved.retryAt;
-      if (status.run?.state === 'running') await this.store.setAlarm(Date.now() + 5000);
-      else if (status.run?.state === 'error') {
+      if (status.run?.state === 'running') {
+        // The shared scheduler derives the continuation deadline from the durable run.
+      } else if (status.run?.state === 'error') {
         const state = (await this.get<RunState>('run'))!;
         if (state.failureKind === 'auth') {
           saved.suspended = true;
-          await this.store.deleteAlarm();
         } else if (state.failureKind === 'revoked') {
           await this.store.delete('daily');
-          await this.store.deleteAlarm();
           return;
         } else if ((saved.retries ?? 0) < 5) {
           saved.retries = (saved.retries ?? 0) + 1;
           saved.retryAt = Date.now() + Math.min(30000 * 2 ** (saved.retries - 1), 10 * 60 * 1000);
-          await this.store.setAlarm(saved.retryAt);
         } else {
           if (state.run.errors.length < 100)
             state.run.errors.push(
@@ -508,12 +686,10 @@ export class BackupService {
           await this.put('run', state);
           saved.retries = 0;
           saved.nextRunAt = Date.now() + day;
-          await this.store.setAlarm(saved.nextRunAt);
         }
       } else {
         saved.retries = 0;
         saved.nextRunAt = Date.now() + day;
-        await this.store.setAlarm(saved.nextRunAt);
       }
       await this.put('daily', saved);
     });

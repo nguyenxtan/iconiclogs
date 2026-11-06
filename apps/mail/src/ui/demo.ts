@@ -171,6 +171,17 @@ export function createDemoApi(): MailApi {
       throw Error('Bản mẫu không sao lưu mail thật.');
     },
     backupCatalog: async () => [],
+    backupMonths: async () => [],
+    backupPackMonth: async () => {
+      throw Error('Bản mẫu không tạo gói sao lưu thật.');
+    },
+    backupPackMonthStep: async () => {
+      throw Error('Bản mẫu không tạo gói sao lưu thật.');
+    },
+    backupMonthDownloadUrl: () => '#',
+    checkBackupMonthDownload: async () => {
+      throw Error('Bản mẫu không có gói sao lưu thật.');
+    },
     backupDownload: async () => {
       throw Error('Bản mẫu không có bản sao lưu.');
     },

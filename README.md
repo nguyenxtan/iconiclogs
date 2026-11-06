@@ -80,7 +80,8 @@ không lưu trong cấu hình deploy hoặc Git.
 Cloudflare đã xác minh TLS và lời chào IMAP 993/SMTP 465 đến `mail.iconiclogs.com`,
 cùng khả năng tạo/đọc MIME trong Worker. Secret `SESSION_KEY` đã cấu hình. Sent đang dùng IMAP APPEND, tự tìm thư mục `\\Sent`;
 cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật. Đã xác minh đăng nhập và đọc Inbox thật bằng cs@iconiclogs.com ngày 04/11.
-Gửi/nhận vòng kín, Sent, file và restore thật vẫn cần chủ hộp thư kiểm thử.
+Đã kiểm thử vòng gửi/nhận, Sent, file và restore trên tài khoản CS với chủ hộp
+thư. Các tài khoản khác cần chủ tài khoản kiểm tra thông tin đăng nhập riêng.
 
 `iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Website/mail cũ và DNS/MX
 chưa thay đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
@@ -94,6 +95,12 @@ Backup cần private R2 binding `BACKUP_BUCKET` và secret `BACKUP_KEY` (32 byte
 khác SESSION_KEY). Chỉ bật lịch sao lưu qua Cài đặt → Sao lưu của từng tài khoản.
 Tắt lịch thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
 không xóa nguồn. Giới hạn thư 10 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
+
+Kho chính là ZIP nén theo hộp thư/năm/tháng (ngày nhận UTC+7), mã hóa trên R2;
+tải ZIP chuẩn hoặc khôi phục từng thư/cả tháng. Đóng gói và xác minh có checkpoint,
+không gom cả tháng vào RAM; bản cũ được giữ trong lúc cập nhật. Gói tháng chỉ gồm
+thư đã capture, không thay thế cảnh báo lượt partial/lỗi. ZIP32 giới hạn dưới
+4 GiB và dưới 65.534 thư/gói; vượt giới hạn được báo lỗi và giữ bản gốc.
 
 Review Claude đã chỉ ra lỗi preflight restore, sửa object backup hỏng và retry;
 đã bổ sung kiểm thử hồi quy. Sao lưu không tải lại MIME từ Viettel nếu UID cùng

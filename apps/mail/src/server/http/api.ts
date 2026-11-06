@@ -17,7 +17,7 @@ import type {
   DraftSummary,
   SavedDraft,
 } from '../../shared/contracts';
-import type { BackupStatus, BackupItem } from '../../shared/backup';
+import type { BackupStatus, BackupItem, BackupMonth } from '../../shared/backup';
 import { draftId, preferencesInput } from '../storage/personal';
 import type { MailAttachment } from '../core/provider';
 import { invalid, MailError, unauthorized } from '../core/errors';
@@ -46,7 +46,18 @@ export interface MailServices {
   backupConfigure(id: string, enabled: boolean): Promise<BackupStatus>;
   backupStart(id: string): Promise<BackupStatus>;
   backupStep(id: string): Promise<BackupStatus>;
-  backupCatalog(id: string): Promise<BackupItem[]>;
+  backupCatalog(id: string, month?: string): Promise<BackupItem[]>;
+  backupMonths(id: string): Promise<BackupMonth[]>;
+  backupPackMonth(id: string, month: string): Promise<BackupMonth>;
+  backupPackMonthStep(id: string, month: string): Promise<BackupMonth>;
+  backupDescribeMonth(
+    id: string,
+    month: string,
+  ): Promise<{ name: string; type: string; size: number }>;
+  backupDownloadMonth(
+    id: string,
+    month: string,
+  ): Promise<{ body: ReadableStream<Uint8Array>; name: string; type: string; size: number }>;
   backupDownload(id: string, entry: string): Promise<MailAttachment>;
   backupRestore(id: string, entry: string, folder: Folder, requestId: string): Promise<unknown>;
 }
@@ -296,8 +307,32 @@ export function createApp(services: MailServices, development = false) {
   );
   app.post('/api/backups/step', async (c) => c.json(await services.backupStep(c.get('sessionId'))));
   app.get('/api/backups/catalog', async (c) =>
-    c.json(await services.backupCatalog(c.get('sessionId'))),
+    c.json(await services.backupCatalog(c.get('sessionId'), c.req.query('month'))),
   );
+  app.get('/api/backups/months', async (c) =>
+    c.json(await services.backupMonths(c.get('sessionId'))),
+  );
+  app.post('/api/backups/months/:month/pack', async (c) =>
+    c.json(await services.backupPackMonth(c.get('sessionId'), c.req.param('month'))),
+  );
+  app.post('/api/backups/months/:month/step', async (c) =>
+    c.json(await services.backupPackMonthStep(c.get('sessionId'), c.req.param('month'))),
+  );
+  app.get('/api/backups/months/:month/download', async (c) => {
+    const head = c.req.method === 'HEAD';
+    const file: { name: string; type: string; size: number; body?: ReadableStream<Uint8Array> } =
+      head
+        ? await services.backupDescribeMonth(c.get('sessionId'), c.req.param('month'))
+        : await services.backupDownloadMonth(c.get('sessionId'), c.req.param('month'));
+    return new Response(file.body ?? null, {
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${file.name}"`,
+        'Content-Length': String(file.size),
+        'Cache-Control': 'private, no-store',
+      },
+    });
+  });
   app.get('/api/backups/:id/download', async (c) => {
     const file = await services.backupDownload(c.get('sessionId'), c.req.param('id'));
     c.header('Content-Disposition', 'attachment; filename="backup.eml"');

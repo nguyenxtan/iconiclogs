@@ -3,11 +3,14 @@ import { MailError, ProviderAuthError } from '../src/server/core/errors';
 import { DefiniteRestoreFailure } from '../src/server/backup/restore';
 import { BackupService, type BackupSource } from '../src/server/backup/service';
 
+import { MemoryBucket, finishCapture } from './backup-memory';
+
 const credentials = { email: 'user@iconiclogs.com', password: 'secret-password' };
 function fixture() {
   const durable = new Map<string, unknown>();
   const alarms: number[] = [];
-  const blobs = new Map<string, Uint8Array>();
+  const bucket = new MemoryBucket();
+  const blobs = bucket.blobs;
   let appendCount = 0;
   let loseResponse = false;
   let oversized = false;
@@ -40,19 +43,25 @@ function fixture() {
       durable.set(key, structuredClone(value));
     },
     delete: async (key: string) => durable.delete(key),
-    list: async <T>({ prefix }: { prefix: string }) =>
-      new Map([...durable].filter(([key]) => key.startsWith(prefix))) as Map<string, T>,
+    list: async <T>({
+      prefix,
+      startAfter,
+      limit,
+    }: {
+      prefix: string;
+      startAfter?: string;
+      limit?: number;
+    }) =>
+      new Map(
+        [...durable]
+          .filter(([key]) => key.startsWith(prefix) && (!startAfter || key > startAfter))
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(0, limit),
+      ) as Map<string, T>,
     setAlarm: async (time: number) => {
       alarms.push(time);
     },
     deleteAlarm: async () => {},
-  };
-  const bucket = {
-    put: async (key: string, value: Uint8Array) => {
-      blobs.set(key, value.slice());
-    },
-    get: async (key: string) =>
-      blobs.has(key) ? { arrayBuffer: async () => blobs.get(key)!.slice().buffer } : null,
   };
   const key = Buffer.alloc(32, 7).toString('base64');
   const factory = () => {
@@ -81,7 +90,7 @@ function fixture() {
 }
 async function captured(f: ReturnType<typeof fixture>) {
   await f.service.start(credentials);
-  await f.service.step(credentials);
+  await finishCapture(f.service, credentials);
   return (await f.service.catalog(credentials.email))[0]!;
 }
 describe('encrypted mailbox backups', () => {
@@ -170,8 +179,8 @@ describe('encrypted mailbox backups', () => {
       { path: 'Archive', uidValidity: '5', upperUid: 1 },
     ];
     await f.service.start(credentials);
-    await f.service.step(credentials);
-    await f.service.step(credentials);
+    await finishCapture(f.service, credentials);
+    await finishCapture(f.service, credentials);
     const items = await f.service.catalog(credentials.email);
     expect(items).toHaveLength(2);
     await f.service.restore(credentials, items[0]!.id, 'inbox', 'source-one');
@@ -251,6 +260,7 @@ describe('encrypted mailbox backups', () => {
       expect(retryAt - Date.now()).toBe(30000);
       vi.setSystemTime(retryAt);
       await f.reopen().alarm();
+      await finishCapture(f.service, credentials);
       expect((await f.service.status(credentials.email)).run?.state).toBe('complete');
       expect(snapshots).toBe(1);
     } finally {
@@ -275,7 +285,7 @@ describe('encrypted mailbox backups', () => {
     await f.service.step(credentials);
     expect((await f.service.status(credentials.email)).run?.state).toBe('running');
     const reopened = f.reopen();
-    await reopened.step(credentials);
+    await finishCapture(reopened, credentials);
     expect((await reopened.status(credentials.email)).run?.state).toBe('complete');
     expect((await reopened.catalog(credentials.email)).length).toBe(2);
   });
@@ -284,7 +294,7 @@ describe('encrypted mailbox backups', () => {
     await captured(f);
     f.blobs.clear();
     await f.service.start(credentials);
-    await f.service.step(credentials);
+    await finishCapture(f.service, credentials);
     expect((await f.service.status(credentials.email)).run?.state).toBe('complete');
     const item = (await f.service.catalog(credentials.email))[0]!;
     expect(
@@ -299,7 +309,7 @@ describe('encrypted mailbox backups', () => {
       return { cursor: 1, messages: [] };
     };
     await f.service.start(credentials);
-    await f.service.step(credentials);
+    await finishCapture(f.service, credentials);
     expect((await f.service.status(credentials.email)).run?.state).toBe('error');
     await f.reopen().step(credentials);
     expect((await f.service.status(credentials.email)).run?.state).toBe('complete');
@@ -322,6 +332,12 @@ describe('encrypted mailbox backups', () => {
       expect(snapshots).toBe(0);
       vi.setSystemTime(now + 24 * 60 * 60 * 1000 + 1);
       await f.service.alarm();
+      for (
+        let i = 0;
+        i < 30 && (await f.service.status(credentials.email)).run?.state === 'running';
+        i++
+      )
+        await f.reopen().alarm();
       const status = await f.service.status(credentials.email);
       expect(status.run?.state).toBe('complete');
       expect(snapshots).toBe(1);
@@ -432,8 +448,8 @@ it('counts a retried capture batch once after a later object write fails', async
       throw Error('second object write interrupted');
     });
   await f.service.start(credentials);
-  expect((await f.service.step(credentials)).run?.state).toBe('error');
-  const resumed = await f.service.step(credentials);
+  expect((await finishCapture(f.service, credentials)).run?.state).toBe('error');
+  const resumed = await finishCapture(f.service, credentials);
   expect(resumed.run?.state).toBe('complete');
   expect(resumed.run?.captured).toBe(2);
   expect(await f.service.catalog(credentials.email)).toHaveLength(2);

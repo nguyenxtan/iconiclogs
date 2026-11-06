@@ -110,9 +110,29 @@ function services(env: Env): MailServices {
       const { value, stub } = await backup(id);
       return unwrapRpc(await stub.step(value));
     },
-    async backupCatalog(id) {
+    async backupCatalog(id, month) {
       const { value, stub } = await backup(id);
-      return unwrapRpc(await stub.catalog(value.email));
+      return unwrapRpc(await stub.catalog(value.email, month));
+    },
+    async backupMonths(id) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.months(value.email));
+    },
+    async backupPackMonth(id, month) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.packMonth(value.email, month));
+    },
+    async backupPackMonthStep(id, month) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.packMonthStep(value.email, month));
+    },
+    async backupDescribeMonth(id, month) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.describeMonth(value.email, month));
+    },
+    async backupDownloadMonth(id, month) {
+      const { value, stub } = await backup(id);
+      return unwrapRpc(await stub.downloadMonth(value.email, month));
     },
     async backupDownload(id, entry) {
       const { value, stub } = await backup(id);

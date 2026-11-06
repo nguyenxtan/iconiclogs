@@ -138,3 +138,28 @@ it('serves raw mail as a download only after resolving the authenticated session
   expect(response.headers.get('Cache-Control')).toBe('no-store');
   expect(await response.text()).toBe('MIME');
 });
+it('checks monthly ZIP HEAD with auth and metadata only without constructing a download stream', async () => {
+  const { app, services } = setup();
+  const cancel = vi.fn();
+  services.backupDescribeMonth = vi.fn(async () => ({
+    name: 'ICONIC-Mail-user-2026-02.zip',
+    type: 'application/zip',
+    size: 123,
+  }));
+  services.backupDownloadMonth = vi.fn(async () => ({
+    body: new ReadableStream<Uint8Array>({ type: 'bytes', cancel }),
+    name: 'ICONIC-Mail-user-2026-02.zip',
+    type: 'application/zip',
+    size: 123,
+  }));
+  const path = 'https://mail.example.com/api/backups/months/2026-02/download';
+  expect((await app.request(path, { method: 'HEAD' })).status).toBe(401);
+  const response = await app.request(path, { method: 'HEAD', headers: auth });
+  expect(response.status).toBe(200);
+  expect(response.headers.get('Content-Type')).toBe('application/zip');
+  expect(response.headers.get('Content-Length')).toBe('123');
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(await response.text()).toBe('');
+  expect(services.backupDownloadMonth).not.toHaveBeenCalled();
+  expect(cancel).not.toHaveBeenCalled();
+});
