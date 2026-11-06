@@ -411,6 +411,48 @@ export function Composer({
         : mode === 'replyAll'
           ? 'Trả lời tất cả'
           : 'Trả lời thư';
+  const contactPicker = (
+    field: 'to' | 'cc' | 'bcc',
+    value: string,
+    update: (value: string) => void,
+  ) => {
+    if (!preferences?.contacts.length) return null;
+    const suggestions = contactSuggestions(value, preferences.contacts);
+    const label = field === 'to' ? 'Đến' : field === 'cc' ? 'Cc' : 'Bcc';
+    return (
+      <select
+        className="recipient-contact-picker"
+        aria-label={`Chọn liên hệ cho ${label}`}
+        value=""
+        disabled={locked || !suggestions.length}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') event.stopPropagation();
+          if (event.key === 'Enter') {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+        }}
+        onChange={(event) => {
+          if (!event.target.value || locked) return;
+          edited();
+          update(event.target.value);
+        }}
+      >
+        <option value="" disabled>
+          {suggestions.length ? 'Danh bạ' : 'Không có kết quả'}
+        </option>
+        {suggestions.map((contact) => (
+          <option key={contact.value} value={contact.value}>
+            {contact.name ? `${contact.name} · ` : ''}
+            {contact.value
+              .split(/[,;\n]/)
+              .at(-1)
+              ?.trim()}
+          </option>
+        ))}
+      </select>
+    );
+  };
   const datalist = (field: 'to' | 'cc' | 'bcc', value: string) => (
     <datalist id={`${contactsId}-${field}`}>
       {contactSuggestions(value, preferences?.contacts ?? []).map((contact, index) => (
@@ -441,7 +483,7 @@ export function Composer({
           if (event.key === 'Tab') {
             const items = Array.from(
               dialog.current?.querySelectorAll<HTMLElement>(
-                'button:not([disabled]), input:not([disabled]), textarea:not([disabled])',
+                'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled])',
               ) ?? [],
             ).filter((item) => !item.hidden && item.getClientRects().length > 0);
             const first = items[0],
@@ -517,6 +559,7 @@ export function Composer({
                 Bcc
               </button>
             )}
+            {contactPicker('to', to, setTo)}
             {datalist('to', to)}
           </div>
           {showCc && (
@@ -536,6 +579,7 @@ export function Composer({
                 }}
                 placeholder="Các địa chỉ cách nhau bằng dấu phẩy"
               />
+              {contactPicker('cc', cc, setCc)}
               {datalist('cc', cc)}
             </div>
           )}
@@ -556,6 +600,7 @@ export function Composer({
                 }}
                 placeholder="Người nhận ẩn với các người nhận khác"
               />
+              {contactPicker('bcc', bcc, setBcc)}
               {datalist('bcc', bcc)}
             </div>
           )}

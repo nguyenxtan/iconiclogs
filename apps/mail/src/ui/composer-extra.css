@@ -205,3 +205,47 @@
   background: #fff;
   box-shadow: 0 -5px 14px #23313a08;
 }
+
+.composer .recipient-field {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.composer .recipient-field input {
+  flex: 1 1 100px;
+  width: 0;
+  min-width: 0;
+}
+.recipient-contact-picker {
+  flex: 0 1 96px;
+  width: 96px;
+  min-width: 0;
+  max-width: 112px;
+  margin-left: auto;
+  padding: 7px 5px;
+  border: 1px solid #dce2e6;
+  border-radius: 5px;
+  color: #801c18;
+  background: #f8fafb;
+  font: inherit;
+  font-size: 12px;
+  min-height: 32px;
+  text-overflow: ellipsis;
+}
+.recipient-contact-picker:disabled {
+  color: #68737d;
+  opacity: 0.6;
+}
+@media (max-width: 600px) {
+  .composer .recipient-field {
+    padding-bottom: 5px;
+  }
+  .composer .recipient-field input {
+    flex-basis: 80px;
+  }
+  .recipient-contact-picker {
+    flex-basis: 84px;
+    width: 84px;
+    max-width: 100px;
+    font-size: 12px;
+  }
+}
