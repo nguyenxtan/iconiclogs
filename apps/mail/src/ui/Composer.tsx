@@ -175,9 +175,12 @@ export function Composer({
   useEffect(() => {
     if (!active || finishing.current || forwardBlocked) return;
     autosave.update({ ...formDraft, ...delivery.current });
-    const timer = window.setTimeout(() => {
-      void autosave.flush().catch(() => {});
-    }, 800);
+    const timer = window.setTimeout(
+      () => {
+        void autosave.flush().catch(() => {});
+      },
+      attachmentBytes(formDraft.attachments) > 2 * 1024 * 1024 ? 8_000 : 800,
+    );
     return () => window.clearTimeout(timer);
   }, [formDraft, active, autosave, forwardBlocked]);
   useEffect(() => {

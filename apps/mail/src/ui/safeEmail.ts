@@ -1,5 +1,10 @@
 import DOMPurify from 'dompurify';
-import { contentIdFromSource, safeRasterDataUrl } from '../shared/inlineMedia';
+import {
+  contentIdFromSource,
+  safeRasterDataUrl,
+  INLINE_IMAGE_COUNT,
+  INLINE_TOTAL_BYTES,
+} from '../shared/inlineMedia';
 
 // Presentation only: finite values used by our signature/quote, never arbitrary sender CSS.
 const inkColors = new Set([
@@ -123,13 +128,27 @@ export function safeEmailDocument(
     ALLOW_DATA_ATTR: false,
     ALLOW_ARIA_ATTR: false,
   });
+  const validated = new Map<string, boolean>();
+  let rendered = 0,
+    bytes = 0;
   for (const image of clean.querySelectorAll('img')) {
     const id = contentIdFromSource(image.getAttribute('src') || '');
     const source = id ? images.get(id) : undefined;
-    if (!source || !safeRasterDataUrl(source)) {
+    const encoded = source?.slice((source?.indexOf(',') ?? -1) + 1);
+    const size = encoded
+      ? (encoded.length / 4) * 3 - (encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0)
+      : 0;
+    if (!source || !id || rendered >= INLINE_IMAGE_COUNT || bytes + size > INLINE_TOTAL_BYTES) {
       image.remove();
       continue;
     }
+    if (!validated.has(id)) validated.set(id, safeRasterDataUrl(source));
+    if (!validated.get(id)) {
+      image.remove();
+      continue;
+    }
+    rendered++;
+    bytes += size;
     image.setAttribute('src', source);
     image.removeAttribute('style');
     image.removeAttribute('height');

@@ -575,6 +575,8 @@ test('18 MiB attachment survives visible draft reload and send while the next by
     .locator('input[type=file]')
     .setInputFiles({ name: 'boundary.bin', mimeType: 'application/octet-stream', buffer: bytes });
   await expect(page.locator('.draft-files')).toContainText('boundary.bin');
+  await page.waitForTimeout(1200);
+  expect([...f.drafts.values()].some((saved) => saved.draft.attachments.length > 0)).toBe(false);
   await closeCompose(page);
   await page.reload();
   await page.getByRole('button', { name: 'Bản nháp', exact: true }).click();

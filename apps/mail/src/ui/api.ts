@@ -66,7 +66,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     credentials: 'same-origin',
     cache: 'no-store',
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(/^\/(?:send$|drafts(?:\/|$))/.test(path) ? 600_000 : 90_000),
     headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
   });
   if (!response.ok) {

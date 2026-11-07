@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
+afterEach(() => vi.restoreAllMocks());
 import { safeEmailDocument } from '../safeEmail';
 
 const embeddedPng =
@@ -128,4 +129,22 @@ it('ignores hostile CSS and attributes while preserving readable normal data tab
   } finally {
     rendered.remove();
   }
+});
+
+it('bounds repeated CID references and decodes a trusted raster only once', () => {
+  const decode = vi.spyOn(globalThis, 'atob');
+  const doc = new DOMParser().parseFromString(
+    safeEmailDocument('<img src="cid:logo">'.repeat(2000), new Map([['logo', embeddedPng]])),
+    'text/html',
+  );
+  expect(doc.querySelectorAll('img')).toHaveLength(10);
+  expect(decode).toHaveBeenCalledTimes(1);
+});
+it('counts repeated image bytes against the total rendered data URL budget', () => {
+  const bytes = Buffer.alloc(3 * 1024 * 1024);
+  Buffer.from(embeddedPng.split(',')[1]!, 'base64').copy(bytes);
+  const source = 'data:image/png;base64,' + bytes.toString('base64');
+  const output = safeEmailDocument('<img src="cid:large">'.repeat(4), new Map([['large', source]]));
+  expect(output.match(/<img /g) ?? []).toHaveLength(2);
+  expect(output.length).toBeLessThan(12 * 1024 * 1024);
 });

@@ -75,8 +75,8 @@ export default {
     const duplicateOpen = await vault.duplicateOpen();
     // A larger attachment verifies many writes in the real transaction rather than only two chunks.
     const largeId = '22345678-1234-4123-a123-123456789012';
-    const large = {...draft,attachments:[{...file,content:'YWFh'.repeat(1500000)}]};
-    const largeSaved = await vault.saveDraft(email,largeId,large,0).catch(error => { throw Error('6MB save: '+error.message); });
+    const large = {...draft,text:'Nội dung tiếng Việt để kiểm tra bộ nhớ',attachments:[{...file,content:'YWFh'.repeat(6 * 1024 * 1024)}]};
+    const largeSaved = await vault.saveDraft(email,largeId,large,0).catch(error => { throw Error('18MiB Vietnamese save: '+error.message); });
     const largeOpened = await vault.draft(email,largeId);
     return Response.json({
       inspection, duplicateOpen, rollback, stale, staleDelete, crossReadRejected,
