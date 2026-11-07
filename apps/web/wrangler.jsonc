@@ -4,6 +4,7 @@
   "account_id": "ee2528cd2e60cd6a1e120d1dba703a3c",
   "compatibility_date": "2026-11-02",
   "workers_dev": true,
+  "routes": [{ "pattern": "iconiclogs.com", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page",

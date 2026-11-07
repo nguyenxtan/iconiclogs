@@ -73,9 +73,18 @@ test('support and setup dialogs work with keyboard, contain verified settings an
   await page.keyboard.press('Enter');
   const settings = page.getByRole('dialog', { name: 'Hướng dẫn cài đặt', exact: true });
   await expect(settings).toBeVisible();
-  await expect(settings).toContainText('mail.iconiclogs.com');
+  await expect(settings).toContainText('hl-mail29.viettelidc.com.vn');
+  await expect(settings).toContainText('Apple Mail trên Mac');
+  await expect(settings).toContainText('iPhone / iPad');
+  await expect(settings).toContainText('Outlook');
   await expect(settings).toContainText('993');
   await expect(settings).toContainText('465');
+  for (const client of ['Outlook', 'Apple Mail trên Mac', 'iPhone / iPad']) {
+    await settings.locator('summary').filter({ hasText: client }).click();
+    await expect(
+      settings.locator('details[open]').filter({ hasText: client }).locator('p'),
+    ).toBeVisible();
+  }
   const close = settings.getByRole('button', { name: 'Đóng hướng dẫn cài đặt', exact: true });
   await close.focus();
   await page.keyboard.press('Shift+Tab');

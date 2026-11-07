@@ -61,11 +61,15 @@ thư mục Sent và hành vi tự lưu Sent. Tham khảo `.dev.vars.example` cho
 production cấu hình secrets riêng trên Cloudflare. `SESSION_KEY` phải là 32 byte
 ngẫu nhiên dạng Base64, không dùng key test. Không ghi credentials vào Git.
 
-Mail dùng URL Workers riêng. `mail.iconiclogs.com` vẫn trỏ tới Viettel để
-phục vụ các ứng dụng mail hiện có; không trỏ hostname này hay MX vào Worker.
+URL production được chuẩn bị: Web tại `https://iconiclogs.com`, Mail tại
+`https://mail.iconiclogs.com`. IMAP/SMTP dùng trực tiếp `hl-mail29.viettelidc.com.vn`;
+MX vẫn ở Viettel. Hướng dẫn Outlook và Apple Mail (Mac/iPhone/iPad) có ngay trên
+màn hình đăng nhập → Hướng dẫn cài đặt: IMAP 993, SMTP 465, SSL/TLS và xác thực
+bằng địa chỉ email đầy đủ cùng mật khẩu Viettel. `webmail.iconiclogs.com` giữ lối
+vào giao diện Viettel. Công ty xác nhận hiện chỉ dùng webmail.
 Gửi/nhận thật, bản Sent và file đính kèm cần kiểm thử bằng tài khoản của chủ hộp thư.
 
-## Trạng thái Cloudflare — 04/11/2026
+## Trạng thái Cloudflare — chuẩn bị production 07/11/2026
 
 Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã kiểm tra
 các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
@@ -77,14 +81,14 @@ và `info` tại `@iconiclogs.com` đăng nhập bằng mật khẩu Viettel hi�
 đăng nhập riêng trong webmail. Mật khẩu chỉ được nhập trên trang đăng nhập,
 không lưu trong cấu hình deploy hoặc Git.
 
-Cloudflare đã xác minh TLS và lời chào IMAP 993/SMTP 465 đến `mail.iconiclogs.com`,
+Cloudflare đã xác minh TLS và lời chào IMAP 993/SMTP 465 đến `hl-mail29.viettelidc.com.vn`,
 cùng khả năng tạo/đọc MIME trong Worker. Secret `SESSION_KEY` đã cấu hình. Sent đang dùng IMAP APPEND, tự tìm thư mục `\\Sent`;
 cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật. Đã xác minh đăng nhập và đọc Inbox thật bằng cs@iconiclogs.com ngày 04/11.
 Đã kiểm thử vòng gửi/nhận, Sent, file và restore trên tài khoản CS với chủ hộp
 thư. Các tài khoản khác cần chủ tài khoản kiểm tra thông tin đăng nhập riêng.
 
-`iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Website/mail cũ và DNS/MX
-chưa thay đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
+`iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Tên miền chính sẽ chuyển sau khi review; Worker cũ được giữ để rollback.
+`www` giữ chuyển hướng 308 sang tên miền chính; MX không đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
 
 ## Mail mở rộng
 
@@ -96,7 +100,7 @@ khác SESSION_KEY). Sao lưu tự động theo ngưỡng 80% chỉ bật qua Cà
 Kiểm tra quota Viettel mỗi giờ, chỉ bắt đầu capture khi dùng từ 80%; nếu vẫn trên
 ngưỡng, các lượt cập nhật cách nhau tối thiểu 24 giờ. Quota thiếu/lỗi không tự
 khởi động capture. Tắt tự động thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
-không xóa nguồn. Giới hạn thư 10 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
+không xóa nguồn. Giới hạn thư MIME 25 MiB, tổng tệp đính kèm khi soạn 18 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
 
 Kho chính là ZIP nén theo hộp thư/năm/tháng (ngày nhận UTC+7), mã hóa trên R2;
 tải ZIP chuẩn hoặc khôi phục từng thư/cả tháng. Đóng gói và xác minh có checkpoint,

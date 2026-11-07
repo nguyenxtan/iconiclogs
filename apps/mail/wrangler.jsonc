@@ -7,6 +7,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
+  "routes": [{ "pattern": "mail.iconiclogs.com", "custom_domain": true }],
   "limits": { "cpu_ms": 30000 },
   "assets": {
     "directory": "dist/client",
@@ -18,7 +19,7 @@
     "ENVIRONMENT": "production",
     "MAIL_ENABLED": "true",
     "MAIL_DOMAIN": "iconiclogs.com",
-    "MAIL_HOST": "mail.iconiclogs.com",
+    "MAIL_HOST": "hl-mail29.viettelidc.com.vn",
     "MAIL_ALLOWED_USERS": "admin@iconiclogs.com,business@iconiclogs.com,cs@iconiclogs.com,customer@iconiclogs.com,director@iconiclogs.com,document@iconiclogs.com,info@iconiclogs.com",
     "SENT_MODE": "append",
   },

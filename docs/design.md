@@ -87,7 +87,8 @@ Không tạo một database thứ hai sao chép toàn bộ mailbox.
   hết hạn tuyệt đối 30 phút, thu hồi và alarm cleanup; login có rate limit.
 - HTML được sanitize và render trong iframe sandbox, ảnh/link ngoài tắt.
   File download yêu cầu phiên và đúng message của mailbox đang đăng nhập.
-- Tổng MIME giới hạn 10 MiB; UI hạn chế file ở 7 MiB để chừa encoding.
+- Tổng MIME giới hạn 25 MiB; UI/server hạn chế tổng file ở 18 MiB để chừa encoding.
+  HTTP JSON tối đa 26 MiB, kể cả bản nháp; MIME thực được kiểm tra lại trước SMTP.
 - Trước SMTP, ghi bền vững idempotency key và fingerprint theo mailbox. Không
   tự gửi lại khi timeout/unknown. SMTP accepted không đồng nghĩa đã đến inbox.
   SMTP và Sent là hai kết quả riêng; Sent lỗi không làm gửi lại email.
@@ -119,8 +120,11 @@ Review tập trung vào file/MIME lớn, HTML độc hại, session expiry/revok
 Local test không chứng minh SMTP, delivery hoặc quyền mailbox production.
 
 Deploy dùng Worker mới độc lập với hệ thống cũ. Kiểm chứng provider trên cloud
-và xác nhận nhận/gửi/file/Sent bằng hộp thư thật. `mail.iconiclogs.com` đang phục vụ
-native mail client nên giữ tại Viettel; không thay hostname này hoặc MX sang Worker.
+và xác nhận nhận/gửi/file/Sent bằng hộp thư thật. Chủ dự án xác nhận ngày 07/11
+hiện công ty chỉ dùng webmail; chấp thuận chuyển `mail.iconiclogs.com` sang Worker.
+IMAP/SMTP và hướng dẫn Outlook/Apple Mail dùng `hl-mail29.viettelidc.com.vn`,
+SSL/TLS tại 993/465; MX và lối vào `webmail.iconiclogs.com` của Viettel giữ nguyên.
+`www` giữ Worker cũ chuyển hướng 308 sang root mới; lưu binding/version để rollback.
 
 ## Review và chỉnh sửa
 
@@ -184,8 +188,8 @@ partial, guard tồn tại qua mở lại bản nháp. Chỉ kết quả sent m�
 BackupCoordinator giữ trạng thái/chỉ mục mã hóa; MIME nguyên gốc mã hóa trong R2
 riêng tư `iconiclogs-mail-backups`. BACKUP_KEY riêng SESSION_KEY, không nằm trong
 Git. Capture theo từng bước có thể tiếp tục; giữ ngày nhận/flags/file, kiểm tra
-SHA-256 và UIDVALIDITY. Thư >10 MiB khiến lượt partial, không được báo hoàn tất.
-Sao lưu hằng ngày chỉ bật bằng thao tác rõ ràng của từng chủ hộp thư; lúc đó mới
+SHA-256 và UIDVALIDITY. Thư >25 MiB khiến lượt partial, không được báo hoàn tất.
+Sao lưu tự động theo ngưỡng 80% chỉ bật bằng thao tác rõ ràng của từng chủ hộp thư; lúc đó mới
 lưu credential mã hóa độc lập với phiên 30 phút. Tắt thu hồi credential, giữ lịch sử.
 
 Catalog lọc theo ngày Việt Nam; tải EML và khôi phục thêm bản sao vào thư mục đã
@@ -196,7 +200,7 @@ mail-server. Mọi cloud/SMTP thật phải được kiểm chứng riêng với
 
 Claude review read-only một lượt: đã sửa lỗi phân loại trước APPEND, sửa lại object
 R2 hỏng từ MIME gốc, seen UID index và batch tối đa 5 thư/2 MiB (một thư lớn riêng
-đến 10 MiB), retry có backoff tối đa 5 lần, bỏ Deleted/Draft/Recent khi restore.
+đến 25 MiB), retry có backoff tối đa 5 lần, bỏ Deleted/Draft/Recent khi restore.
 Mật khẩu bị từ chối tạm dừng lịch và hiện thao tác cập nhật quyền; xóa tài khoản
 khỏi allowlist thu hồi quyền sao lưu tự động. Bản nháp lost-response được đối
 chiếu nội dung ở revision kế tiếp, không ghi đè thay đổi của tab khác. Catalog
@@ -255,7 +259,7 @@ chỉ mục đọc/khôi phục đã chuyển thành công. Không đổi mật 
 Các lượt sao lưu mới tự gom tháng sau khi đọc thư; bản sao đã có được gom qua
 thao tác cập nhật gói tháng. Tháng đang có thêm dữ liệu hiện cần cập nhật, không
 gọi là đầy đủ chỉ vì đã tạo ZIP. Trạng thái lượt sao lưu partial/lỗi và thư quá
-giới hạn vẫn hiện rõ; lịch hằng ngày cần opt-in như trước. Chống khôi phục trùng
+giới hạn vẫn hiện rõ; lịch kiểm tra mỗi giờ cần opt-in như trước. Chống khôi phục trùng
 và khóa kết quả chưa xác định được giữ khi nguồn đọc chuyển sang gói tháng.
 
 Gói thay thế có 24 giờ chờ trước khi dọn để lượt tải đang chạy vẫn đọc được.

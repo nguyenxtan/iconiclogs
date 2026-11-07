@@ -253,7 +253,7 @@ export function Login({
                 <div>
                   <dt>Máy chủ thư đến</dt>
                   <dd>
-                    mail.iconiclogs.com
+                    hl-mail29.viettelidc.com.vn
                     <br />
                     <span>IMAP · cổng 993 · SSL/TLS</span>
                   </dd>
@@ -261,12 +261,32 @@ export function Login({
                 <div>
                   <dt>Máy chủ thư đi</dt>
                   <dd>
-                    mail.iconiclogs.com
+                    hl-mail29.viettelidc.com.vn
                     <br />
                     <span>SMTP · cổng 465 · SSL/TLS</span>
                   </dd>
                 </div>
               </dl>
+              <details className="login-setup-client">
+                <summary>Outlook</summary>
+                <p>
+                  Thêm tài khoản, chọn thiết lập thủ công và IMAP, rồi nhập thông số máy chủ ở trên.
+                </p>
+              </details>
+              <details className="login-setup-client">
+                <summary>Apple Mail trên Mac</summary>
+                <p>
+                  Trong Mail, chọn Thêm tài khoản → Tài khoản Mail khác. Chọn IMAP và nhập thông số
+                  máy chủ ở trên.
+                </p>
+              </details>
+              <details className="login-setup-client">
+                <summary>iPhone / iPad</summary>
+                <p>
+                  Vào Cài đặt → Ứng dụng → Mail → Tài khoản Mail → Thêm tài khoản. Chọn tài khoản
+                  khác, thêm tài khoản Mail và chọn IMAP.
+                </p>
+              </details>
               <p className="login-setup-note">
                 Bật xác thực cho máy chủ thư đi và dùng cùng tài khoản, mật khẩu như thư đến.
               </p>

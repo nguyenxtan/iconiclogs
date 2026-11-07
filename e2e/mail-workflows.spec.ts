@@ -563,13 +563,11 @@ test('18 MiB attachment survives visible draft reload and send while the next by
   await page
     .getByRole('textbox', { name: 'Tiêu đề thư', exact: true })
     .fill('Synthetic large attachment');
-  await page
-    .locator('input[type=file]')
-    .setInputFiles({
-      name: 'too-large.bin',
-      mimeType: 'application/octet-stream',
-      buffer: Buffer.alloc(18 * 1024 * 1024 + 1),
-    });
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'too-large.bin',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.alloc(18 * 1024 * 1024 + 1),
+  });
   await expect(page.locator('.composer .notice.error')).toContainText('18 MiB');
   await expect(page.locator('.draft-files')).toHaveCount(0);
   const bytes = Buffer.alloc(18 * 1024 * 1024, 71);
