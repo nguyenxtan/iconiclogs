@@ -9,6 +9,7 @@ import nodemailer from 'nodemailer';
 import type { MailMessage, SendDraft } from '../../shared/contracts';
 import { MAX_MIME } from '../core/validation';
 import { MailError } from '../core/errors';
+import { normalizeContentId } from '../../shared/inlineMedia';
 
 export function ensureMimeSize(size: number) {
   if (size > MAX_MIME)
@@ -39,6 +40,7 @@ export function messageBody(
       name: file.filename || `attachment-${id + 1}`,
       type: file.contentType,
       size: file.size,
+      ...(normalizeContentId(file.cid) ? { contentId: normalizeContentId(file.cid) } : {}),
     })),
   };
 }

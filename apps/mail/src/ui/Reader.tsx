@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Folder, MailMessage, MessageAction } from '../shared/contracts';
-import type { MailApi } from './api';
+import { MailApiError, type MailApi } from './api';
 import { Icon } from './Icon';
 import { safeEmailDocument } from './safeEmail';
+import { inlineImageCandidates, loadInlineImages } from './inlineImages';
 
 export function Reader({
   message,
@@ -33,9 +34,50 @@ export function Reader({
   onError(error: unknown): void;
   onRetry(): void;
 }) {
+  const imageKey = message && !busy && !error ? `${folder}:${message.id}` : '';
+  const candidates = useMemo(
+    () => (message?.html ? inlineImageCandidates(message.html, message.attachments) : []),
+    [message?.html, message?.attachments],
+  );
+  const [imageAttempt, setImageAttempt] = useState(0);
+  const [inline, setInline] = useState<{
+    key: string;
+    images: Map<string, string>;
+    loading: boolean;
+  } | null>(null);
+  const reportImageError = useRef(onError);
+  useEffect(() => {
+    reportImageError.current = onError;
+  }, [onError]);
+  useEffect(() => {
+    if (!imageKey || !candidates.length || !message) {
+      setInline(null);
+      return;
+    }
+    const controller = new AbortController();
+    const id = message.id;
+    setInline({ key: imageKey, images: new Map(), loading: true });
+    void loadInlineImages(
+      candidates,
+      async (attachmentId) => {
+        try {
+          return await api.attachment(folder, id, attachmentId);
+        } catch (error) {
+          if (!controller.signal.aborted && error instanceof MailApiError && error.status === 401)
+            reportImageError.current(error);
+          throw error;
+        }
+      },
+      controller.signal,
+    ).then((images) => {
+      if (!controller.signal.aborted) setInline({ key: imageKey, images, loading: false });
+    });
+    return () => controller.abort();
+  }, [api, folder, imageKey, candidates, imageAttempt]);
+  const resolvedImages = inline?.key === imageKey ? inline.images : undefined;
   const html = useMemo(
-    () => (message?.html ? safeEmailDocument(message.html) : ''),
-    [message?.html],
+    () => (message?.html ? safeEmailDocument(message.html, resolvedImages) : ''),
+    [message?.html, resolvedImages],
   );
   const [downloading, setDownloading] = useState<number | null>(null);
   async function download(id: number, name: string) {
@@ -219,7 +261,20 @@ export function Reader({
           {html ? (
             <>
               <p className="html-note">
-                <Icon name="lock" size={13} /> Nội dung được bảo vệ. Ảnh và liên kết ngoài đã tắt.
+                <Icon name="lock" size={13} /> Liên kết và ảnh từ bên ngoài đã tắt.
+                {inline?.key === imageKey && inline.loading ? (
+                  <span role="status"> Đang tải ảnh nhúng…</span>
+                ) : null}
+                {inline?.key === imageKey &&
+                !inline.loading &&
+                inline.images.size < candidates.length ? (
+                  <button
+                    className="button subtle"
+                    onClick={() => setImageAttempt((value) => value + 1)}
+                  >
+                    Tải lại ảnh nhúng
+                  </button>
+                ) : null}
               </p>
               <iframe
                 title="Nội dung HTML của thư"

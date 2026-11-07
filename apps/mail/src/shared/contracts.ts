@@ -13,6 +13,8 @@ export interface AttachmentInfo {
   size: number;
   /** False when decoded attachment bytes could not be matched to its IMAP part. */
   sizeKnown?: boolean;
+  /** MIME Content-ID for authenticated embedded image resolution. */
+  contentId?: string;
 }
 export interface MessageSummary {
   id: string;

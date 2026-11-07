@@ -2,6 +2,41 @@
 import { expect, it } from 'vitest';
 import { safeEmailDocument } from '../safeEmail';
 
+const embeddedPng =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII=';
+
+it('renders only a referenced trusted CID raster while removing active image attributes', () => {
+  const output = safeEmailDocument(
+    '<p>Details</p><img src="cid:logo%40example.com" alt="Company logo" width="120" height="40" srcset="https://tracker.test/pixel 2x" onerror="alert(1)">' +
+      '<img src="https://tracker.test/pixel"><img src="data:image/svg+xml,bad"><img src="cid:unknown">',
+    new Map([['logo@example.com', embeddedPng]]),
+  );
+  const doc = new DOMParser().parseFromString(output, 'text/html');
+  expect(doc.querySelectorAll('img')).toHaveLength(1);
+  expect(doc.querySelector('img')?.getAttribute('src')).toBe(embeddedPng);
+  expect(doc.querySelector('img')?.getAttribute('alt')).toBe('Company logo');
+  expect(doc.querySelector('img')?.getAttribute('width')).toBe('120');
+  expect(doc.querySelector('[srcset],[onerror]')).toBeNull();
+  expect(doc.body.innerHTML).not.toContain('https://');
+  expect(
+    doc.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content'),
+  ).toContain('img-src data:');
+});
+
+it('never accepts a trusted mapping containing SVG, remote URLs or malformed raster data', () => {
+  for (const value of [
+    'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+    'https://tracker.test/x',
+    'data:image/png;base64,not-base64!',
+  ]) {
+    const doc = new DOMParser().parseFromString(
+      safeEmailDocument('<img src="cid:logo">', new Map([['logo', value]])),
+      'text/html',
+    );
+    expect(doc.querySelector('img')).toBeNull();
+  }
+});
+
 function attachForStyleCheck(doc: Document) {
   const stylesheet = document.createElement('style');
   stylesheet.textContent = doc.head.querySelector('style')?.textContent ?? '';

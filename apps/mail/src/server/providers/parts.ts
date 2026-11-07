@@ -1,6 +1,7 @@
 import type { ParsedMail } from 'mailparser';
 import type { MessageStructureObject } from 'imapflow';
 import type { AttachmentInfo } from '../../shared/contracts';
+import { normalizeContentId } from '../../shared/inlineMedia';
 
 export interface AttachmentPart extends AttachmentInfo {
   part: string;
@@ -54,7 +55,11 @@ export function decodedAttachmentParts(
     const size = file?.content.byteLength;
     // Unknown metadata must never be presented or used as an exact decoded-size limit.
     return typeof size === 'number' && Number.isSafeInteger(size) && size >= 0
-      ? { ...part, size }
+      ? {
+          ...part,
+          size,
+          ...(normalizeContentId(file?.cid) ? { contentId: normalizeContentId(file?.cid) } : {}),
+        }
       : { ...part, sizeKnown: false };
   });
 }

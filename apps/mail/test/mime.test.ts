@@ -1,6 +1,30 @@
 import { expect, it } from 'vitest';
 import { composeMessage, messageBody, parseMessage } from '../src/server/providers/mime';
 
+it('keeps embedded Content-ID metadata without converting it to a remote or data URL', async () => {
+  const raw = Buffer.from(
+    'From: Sender <sender@example.com>\r\nTo: cs@iconiclogs.com\r\n' +
+      'Subject: Embedded logo\r\nMIME-Version: 1.0\r\n' +
+      'Content-Type: multipart/related; boundary="inline-test"\r\n\r\n' +
+      '--inline-test\r\nContent-Type: text/html; charset=utf-8\r\n\r\n' +
+      '<p>Company details</p><img src="cid:company-logo@example.com">\r\n' +
+      '--inline-test\r\nContent-Type: image/png; name="logo.png"\r\n' +
+      'Content-Disposition: inline; filename="logo.png"\r\n' +
+      'Content-ID: <company-logo@example.com>\r\nContent-Transfer-Encoding: base64\r\n\r\n' +
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII=\r\n' +
+      '--inline-test--\r\n',
+  );
+  const body = messageBody(await parseMessage(raw));
+  expect(body.html).toContain('cid:company-logo@example.com');
+  expect(body.html).not.toContain('data:image');
+  expect(body.attachments[0]).toMatchObject({
+    id: 0,
+    name: 'logo.png',
+    type: 'image/png',
+    contentId: 'company-logo@example.com',
+  });
+});
+
 it('roundtrips Vietnamese body, reply identity and real attachments through MIME', async () => {
   const raw = await composeMessage(
     'user@iconiclogs.com',

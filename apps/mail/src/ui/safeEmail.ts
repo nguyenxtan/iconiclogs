@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { contentIdFromSource, safeRasterDataUrl } from '../shared/inlineMedia';
 
 // Presentation only: finite values used by our signature/quote, never arbitrary sender CSS.
 const inkColors = new Set([
@@ -78,7 +79,10 @@ function safePresentationStyle(style: string): string {
 }
 
 /** Mail content never enters the parent DOM; resources and navigation stay disabled. */
-export function safeEmailDocument(html: string): string {
+export function safeEmailDocument(
+  html: string,
+  images: ReadonlyMap<string, string> = new Map(),
+): string {
   const clean = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'p',
@@ -112,12 +116,32 @@ export function safeEmailDocument(html: string): string {
       'h6',
       'hr',
       'a',
+      'img',
     ],
-    ALLOWED_ATTR: ['colspan', 'rowspan', 'style', 'role'],
+    ALLOWED_ATTR: ['colspan', 'rowspan', 'style', 'role', 'src', 'alt', 'width', 'height'],
     RETURN_DOM_FRAGMENT: true,
     ALLOW_DATA_ATTR: false,
     ALLOW_ARIA_ATTR: false,
   });
+  for (const image of clean.querySelectorAll('img')) {
+    const id = contentIdFromSource(image.getAttribute('src') || '');
+    const source = id ? images.get(id) : undefined;
+    if (!source || !safeRasterDataUrl(source)) {
+      image.remove();
+      continue;
+    }
+    image.setAttribute('src', source);
+    image.removeAttribute('style');
+    image.removeAttribute('height');
+    const width = image.getAttribute('width') || '';
+    if (!/^\d{1,4}$/.test(width) || Number(width) < 1 || Number(width) > 1600)
+      image.removeAttribute('width');
+    image.setAttribute('alt', (image.getAttribute('alt') || 'Ảnh đính kèm').slice(0, 300));
+  }
+  for (const element of clean.querySelectorAll('[src],[alt],[width],[height]')) {
+    if (element.tagName === 'IMG') continue;
+    for (const attribute of ['src', 'alt', 'width', 'height']) element.removeAttribute(attribute);
+  }
   for (const element of clean.querySelectorAll('[style]')) {
     const style = safePresentationStyle(element.getAttribute('style') || '');
     if (style) element.setAttribute('style', style);
@@ -133,5 +157,5 @@ export function safeEmailDocument(html: string): string {
   }
   const container = document.createElement('div');
   container.appendChild(clean);
-  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; font-src 'none'; connect-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;color:#201d1a;font:14px/1.8 system-ui,sans-serif;overflow-wrap:anywhere}table{max-width:100%;border-collapse:collapse}td,th{padding:6px;border:1px solid #e3ded7}table[role="presentation"]>tbody>tr>td,table[role="presentation"]>thead>tr>th,table[role="presentation"]>tfoot>tr>td{padding:0;border:0}pre{white-space:pre-wrap}blockquote{margin:16px 0;padding-left:16px;border-left:2px solid #e3ded7;color:#665f58}a{color:inherit}h1,h2,h3{line-height:1.4}hr{border:0;border-top:1px solid #e3ded7}</style></head><body>${container.innerHTML}</body></html>`;
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;color:#201d1a;font:14px/1.8 system-ui,sans-serif;overflow-wrap:anywhere}img{max-width:100%;height:auto;vertical-align:middle}table{max-width:100%;border-collapse:collapse}td,th{padding:6px;border:1px solid #e3ded7}table[role="presentation"]>tbody>tr>td,table[role="presentation"]>thead>tr>th,table[role="presentation"]>tfoot>tr>td{padding:0;border:0}pre{white-space:pre-wrap}blockquote{margin:16px 0;padding-left:16px;border-left:2px solid #e3ded7;color:#665f58}a{color:inherit}h1,h2,h3{line-height:1.4}hr{border:0;border-top:1px solid #e3ded7}</style></head><body>${container.innerHTML}</body></html>`;
 }

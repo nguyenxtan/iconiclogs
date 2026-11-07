@@ -57,6 +57,20 @@ const structure = {
     },
   ],
 };
+it('maps a decoded Content-ID by MIME part rather than by a duplicate filename', async () => {
+  const withCid = Buffer.from(
+    raw
+      .toString()
+      .replace(
+        'Content-Disposition: attachment; filename="same.bin"\r\n',
+        'Content-Disposition: attachment; filename="same.bin"\r\nContent-ID: <first@example.com>\r\n',
+      ),
+  );
+  const parsed = await parseMessage(withCid);
+  const parts = decodedAttachmentParts(structure, [...parsed.attachments].reverse());
+  expect(parts[0]).toMatchObject({ id: 0, part: '1.2', contentId: 'first@example.com' });
+  expect(parts[1]?.contentId).toBeUndefined();
+});
 it('maps actual decoded MIME bytes by partId despite duplicate filenames and reordered parser results', async () => {
   const parsed = await parseMessage(raw);
   expect(parsed.attachments.map((file) => file.partId)).toEqual(['1.2', '2']);

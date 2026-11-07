@@ -3,6 +3,15 @@
 Đã được chủ dự án duyệt ngày 02/11/2026. Code local trước, deploy sau.
 Địa điểm: `code/iconic`; repo public `nguyenxtan/iconiclogs`.
 
+Phạm vi hoàn thiện được yêu cầu ngày 07/11: hiển thị ảnh nhúng an toàn, hoàn thiện
+sao lưu, đưa Web/Mail lên tên miền chính thức và kiểm thử bàn giao. Giữ kiến trúc
+hiện tại. Chọn mức MIME 25 MiB và tổng file gửi 18 MiB (Viettel công bố SIZE 50 MiB),
+cần kiểm chứng với runtime và ZIP lớn. Ảnh CID chỉ được lấy qua phiên của đúng hộp
+thư, xác minh PNG/JPEG/GIF/WebP rồi nhúng trong iframe; ảnh ngoài vẫn bị chặn.
+Mỗi thư tải tối đa 10 ảnh, 3 MiB/ảnh và 8 MiB tổng để giữ mức dùng bộ nhớ có giới hạn.
+Tên miền Mail được chuyển sau khi xác định ảnh hưởng tới các native mail client;
+MX giữ nguyên ở Viettel. README và tài liệu này là tài liệu bàn giao chính.
+
 ## Mục tiêu
 
 Website giới thiệu ICONIC đầy đủ thông tin và webmail nội bộ gửi/nhận được.
