@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { MAX_REQUEST_BYTES } from '../../shared/limits';
 import { getCookie, setCookie } from 'hono/cookie';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type {
@@ -98,7 +99,7 @@ export function createApp(services: MailServices, development = false) {
   app.use(
     '/api/*',
     bodyLimit({
-      maxSize: 11 * 1024 * 1024,
+      maxSize: MAX_REQUEST_BYTES,
       onError: (c) =>
         c.json({ error: { code: 'TOO_LARGE', message: 'Dữ liệu vượt giới hạn.' } }, 413),
     }),
@@ -114,7 +115,7 @@ export function createApp(services: MailServices, development = false) {
   app.use(
     '/api/send',
     bodyLimit({
-      maxSize: 11 * 1024 * 1024,
+      maxSize: MAX_REQUEST_BYTES,
       onError: (c) =>
         c.json({ error: { code: 'TOO_LARGE', message: 'Thư vượt giới hạn dung lượng.' } }, 413),
     }),

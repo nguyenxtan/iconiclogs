@@ -6,7 +6,8 @@ import {
 import type { MailAddress, MailMessage, MailPreferences, SendDraft } from '../shared/contracts';
 
 export type ComposeMode = 'reply' | 'replyAll' | 'forward';
-export const MAX_COMPOSE_BYTES = 7 * 1024 * 1024;
+import { MAX_COMPOSE_BYTES } from '../shared/limits';
+export { MAX_COMPOSE_BYTES } from '../shared/limits';
 
 export function splitRecipients(value: string): string[] {
   return value
@@ -130,14 +131,14 @@ export async function forwardAttachments(
     message.attachments.reduce((sum, file) => sum + (file.sizeKnown === false ? 0 : file.size), 0) >
     MAX_COMPOSE_BYTES
   ) {
-    throw Error('Tổng tệp gốc vượt giới hạn 7 MB.');
+    throw Error('Tổng tệp gốc vượt giới hạn 18 MiB.');
   }
   const files: SendDraft['attachments'] = [];
   let bytes = 0;
   for (const attachment of message.attachments) {
     const blob = await download(attachment.id);
     bytes += blob.size;
-    if (bytes > MAX_COMPOSE_BYTES) throw Error('Tổng tệp gốc vượt giới hạn 7 MB.');
+    if (bytes > MAX_COMPOSE_BYTES) throw Error('Tổng tệp gốc vượt giới hạn 18 MiB.');
     files.push({
       name: attachment.name,
       type: attachment.type || blob.type || 'application/octet-stream',

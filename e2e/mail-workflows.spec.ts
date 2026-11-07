@@ -553,3 +553,36 @@ test('short mobile advanced filters leave a reachable message row and scroll wit
   await first.click();
   await expect(page.locator('.mail-subject h2')).toHaveText(subject);
 });
+
+test('18 MiB attachment survives visible draft reload and send while the next byte is refused', async ({
+  page,
+}) => {
+  const f = await fixture(page);
+  await page.getByRole('button', { name: 'Soạn thư', exact: true }).first().click();
+  await page.locator('#draft-to').fill('recipient@example.test');
+  await page
+    .getByRole('textbox', { name: 'Tiêu đề thư', exact: true })
+    .fill('Synthetic large attachment');
+  await page
+    .locator('input[type=file]')
+    .setInputFiles({
+      name: 'too-large.bin',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.alloc(18 * 1024 * 1024 + 1),
+    });
+  await expect(page.locator('.composer .notice.error')).toContainText('18 MiB');
+  await expect(page.locator('.draft-files')).toHaveCount(0);
+  const bytes = Buffer.alloc(18 * 1024 * 1024, 71);
+  await page
+    .locator('input[type=file]')
+    .setInputFiles({ name: 'boundary.bin', mimeType: 'application/octet-stream', buffer: bytes });
+  await expect(page.locator('.draft-files')).toContainText('boundary.bin');
+  await closeCompose(page);
+  await page.reload();
+  await page.getByRole('button', { name: 'Bản nháp', exact: true }).click();
+  await page.locator('.draft-card').click();
+  await expect(page.locator('.draft-files')).toContainText('boundary.bin');
+  await page.getByRole('button', { name: 'Gửi thư', exact: true }).click();
+  await expect.poll(() => f.sends.length).toBe(1);
+  expect(Buffer.from(f.sends[0]!.attachments[0]!.content, 'base64').equals(bytes)).toBe(true);
+});

@@ -3,7 +3,8 @@ import { signaturePayloadInput } from '../../shared/signature';
 import type { Folder, MessageAction, MessageFilter, SendDraft } from '../../shared/contracts';
 import { invalid, MailError } from './errors';
 
-export const MAX_MIME = 10 * 1024 * 1024;
+import { MAX_MIME_BYTES, MAX_COMPOSE_BYTES } from '../../shared/limits';
+export const MAX_MIME = MAX_MIME_BYTES;
 import { validEmail } from '../../shared/email';
 export { validEmail } from '../../shared/email';
 const object = (input: unknown): Record<string, unknown> => {
@@ -76,7 +77,8 @@ export function sendInput(input: unknown): SendDraft {
   )
     throw invalid();
   if (!Array.isArray(body.attachments) || body.attachments.length > 10) throw invalid();
-  let size = 0;
+  let size = 0,
+    decodedSize = 0;
   const attachments = body.attachments.map((input) => {
     const file = object(input);
     if (
@@ -91,8 +93,13 @@ export function sendInput(input: unknown): SendDraft {
     )
       throw invalid();
     size += file.content.length;
+    decodedSize +=
+      (file.content.length / 4) * 3 -
+      (file.content.endsWith('==') ? 2 : file.content.endsWith('=') ? 1 : 0);
     return { name: file.name, type: file.type, content: file.content };
   });
+  if (decodedSize > MAX_COMPOSE_BYTES)
+    throw new MailError('TOO_LARGE', 413, 'Tổng tệp đính kèm tối đa 18 MiB.');
   let quote: SendDraft['quote'];
   if (body.quote !== undefined) {
     try {
@@ -113,7 +120,7 @@ export function sendInput(input: unknown): SendDraft {
       (quote ? new TextEncoder().encode(JSON.stringify(quote)).length : 0) >
     MAX_MIME - 65536
   )
-    throw new MailError('TOO_LARGE', 413, 'Tổng dung lượng thư tối đa 10 MiB, gồm mã hóa file.');
+    throw new MailError('TOO_LARGE', 413, 'Tổng dung lượng thư tối đa 25 MiB, gồm mã hóa file.');
   let signature: SendDraft['signature'];
   if (body.signature !== undefined) {
     try {

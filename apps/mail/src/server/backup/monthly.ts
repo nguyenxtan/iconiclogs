@@ -1,4 +1,5 @@
 import { inflateRawSync } from 'node:zlib';
+import { MAX_MIME_BYTES } from '../../shared/limits';
 import type { BackupItem, BackupMonth } from '../../shared/backup';
 import { backupError, digest, open, seal } from './crypto';
 import {
@@ -327,13 +328,17 @@ export class MonthlyArchive {
   }
   private async readEntry(archive: Archive, entry: Entry) {
     const record = entry.record!;
-    if (record.size !== entry.item.size || record.method !== 8 || record.packed > 11 * 1024 * 1024)
+    if (
+      record.size !== entry.item.size ||
+      record.method !== 8 ||
+      record.packed > MAX_MIME_BYTES + 65536
+    )
       throw backupError('BACKUP_CORRUPT', 'Thông tin gói ZIP không hợp lệ.', 502);
     let raw: Uint8Array;
     try {
       raw = new Uint8Array(
         inflateRawSync(await this.readRange(archive, record.dataOffset, record.packed), {
-          maxOutputLength: 10 * 1024 * 1024,
+          maxOutputLength: MAX_MIME_BYTES,
         }),
       );
     } catch {

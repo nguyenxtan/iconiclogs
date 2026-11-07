@@ -99,7 +99,7 @@ describe('forward attachment safety', () => {
         {
           ...original,
           attachments: [
-            { id: 1, name: 'large.zip', type: 'application/zip', size: 8 * 1024 * 1024 },
+            { id: 1, name: 'large.zip', type: 'application/zip', size: 19 * 1024 * 1024 },
           ],
         },
         async () => {
@@ -107,7 +107,7 @@ describe('forward attachment safety', () => {
           return new Blob([]);
         },
       ),
-    ).rejects.toThrow('7 MB');
+    ).rejects.toThrow('18 MiB');
     expect(downloads).toBe(0);
   });
   it('rejects actual oversized content even if metadata understated the size', async () => {
@@ -117,9 +117,9 @@ describe('forward attachment safety', () => {
           ...original,
           attachments: [{ id: 1, name: 'large.zip', type: 'application/zip', size: 1 }],
         },
-        async () => new Blob([new Uint8Array(7 * 1024 * 1024 + 1)]),
+        async () => new Blob([new Uint8Array(18 * 1024 * 1024 + 1)]),
       ),
-    ).rejects.toThrow('7 MB');
+    ).rejects.toThrow('18 MiB');
   });
   it('never returns a partial set if an original attachment cannot be fetched', async () => {
     const message = {
@@ -309,6 +309,23 @@ it('downloads attachments with unknown decoded metadata and enforces their actua
   expect(downloads).toBe(1);
   expect(Buffer.from(files[0]!.content, 'base64').length).toBe(119);
   await expect(
-    forwardAttachments(message, async () => new Blob([new Uint8Array(7 * 1024 * 1024 + 1)])),
-  ).rejects.toThrow('7 MB');
+    forwardAttachments(message, async () => new Blob([new Uint8Array(18 * 1024 * 1024 + 1)])),
+  ).rejects.toThrow('18 MiB');
+});
+
+it('forwards an exact 18 MiB file without losing bytes', async () => {
+  const bytes = new Uint8Array(18 * 1024 * 1024);
+  bytes[bytes.length - 1] = 231;
+  const files = await forwardAttachments(
+    {
+      ...original,
+      attachments: [
+        { id: 0, name: 'boundary.bin', type: 'application/octet-stream', size: bytes.length },
+      ],
+    },
+    async () => new Blob([bytes]),
+  );
+  const restored = Buffer.from(files[0]!.content, 'base64');
+  expect(restored.length).toBe(bytes.length);
+  expect(restored[restored.length - 1]).toBe(231);
 });

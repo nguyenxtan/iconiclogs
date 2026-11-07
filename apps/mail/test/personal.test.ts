@@ -141,3 +141,20 @@ it('retains structured quote metadata, original body and literal prefixes throug
     (await new PersonalData(storage, secret, 'a@iconiclogs.com').draft(saved.id)).draft,
   ).toMatchObject({ text: 'Only authored text', quote });
 });
+
+it('reopens an encrypted draft containing the exact 18 MiB attachment boundary', async () => {
+  const { storage } = fixture();
+  const data = new PersonalData(storage, secret, 'a@iconiclogs.com');
+  const file = {
+    name: 'boundary.bin',
+    type: 'application/octet-stream',
+    content: Buffer.alloc(18 * 1024 * 1024, 71).toString('base64'),
+  };
+  const saved = await data.saveDraft(
+    '12345678-1234-4123-a123-123456789012',
+    { ...draft, attachments: [file] },
+    0,
+  );
+  const reopened = await new PersonalData(storage, secret, 'a@iconiclogs.com').draft(saved.id);
+  expect(reopened.draft.attachments[0]!.content).toBe(file.content);
+}, 15000);

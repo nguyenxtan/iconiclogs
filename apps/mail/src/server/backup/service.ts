@@ -333,7 +333,7 @@ export class BackupService {
           if (message.oversized || (message.raw?.byteLength ?? 0) > MAX_MIME) {
             if (state.run.errors.length < 100)
               state.run.errors.push(
-                `Thư UID ${message.uid} vượt giới hạn 10 MiB và chưa được sao lưu.`,
+                `Thư UID ${message.uid} vượt giới hạn 25 MiB và chưa được sao lưu.`,
               );
             continue;
           }

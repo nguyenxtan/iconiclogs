@@ -67,7 +67,7 @@ it('records oversize as skipped without downloading a partial source', async () 
   const client = {
     mailbox: { uidValidity: 8n },
     getMailboxLock: async () => ({ release() {} }),
-    fetchAll: async () => [{ uid: 1, size: 10 * 1024 * 1024 + 1, internalDate: new Date() }],
+    fetchAll: async () => [{ uid: 1, size: 25 * 1024 * 1024 + 1, internalDate: new Date() }],
     download: vi.fn(),
   };
   expect((await adapter(client).batch(folder, 0)).messages[0]!.oversized).toBe(true);
@@ -217,4 +217,18 @@ it('skips provider downloads for verified cached UIDs and bounds a standalone la
   expect(fresh.messages).toHaveLength(1);
   expect(fresh.messages[0]?.raw?.length).toBe(3 * 1024 * 1024);
   expect(client.download).toHaveBeenCalledTimes(1);
+});
+
+it('captures exact 25 MiB MIME without the old ten MiB truncation', async () => {
+  const raw = Buffer.alloc(25 * 1024 * 1024, 71);
+  const client = {
+    mailbox: { uidValidity: 8n },
+    getMailboxLock: async () => ({ release() {} }),
+    fetchAll: async () => [{ uid: 1, size: raw.length, internalDate: new Date() }],
+    download: async () => ({ meta: { expectedSize: raw.length }, content: Readable.from([raw]) }),
+  };
+  const message = (await adapter(client).batch(folder, 0)).messages[0]!;
+  expect(message.oversized).not.toBe(true);
+  expect(message.raw?.byteLength).toBe(raw.length);
+  expect(message.raw?.[raw.length - 1]).toBe(71);
 });

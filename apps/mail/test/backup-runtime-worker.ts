@@ -51,7 +51,7 @@ export class NativeBackup extends DurableObject<NativeEnv> {
               crypto.getRandomValues(bytes.subarray(i, Math.min(i + 65536, bytes.length)));
             return bytes;
           };
-          const maximum = random(10 * 1024 * 1024),
+          const maximum = random(25 * 1024 * 1024),
             nearChunk = random(6 * 1024 * 1024 - 64 * 1024);
           const maximumSha = await digest(maximum),
             nearSha = await digest(nearChunk);
@@ -72,7 +72,13 @@ export class NativeBackup extends DurableObject<NativeEnv> {
             messages: [message(nearUid, nearChunk), message(maximumUid, maximum)],
           };
         },
-        append: async () => true,
+        append: async (_folder, raw) => {
+          const sha = await digest(raw);
+          const items = await this.createService().catalog(identity.email);
+          if (!items.some((item) => item.sha256 === sha && item.size === raw.length))
+            throw Error('restore changed original MIME');
+          return true;
+        },
       }),
     );
   }
@@ -96,7 +102,16 @@ export class NativeBackup extends DurableObject<NativeEnv> {
       if (status.run?.state !== 'running') {
         if (large) {
           const items = await this.service.catalog(identity.email);
-          for (const item of items) await this.createService().download(identity.email, item.id);
+          for (const item of items) {
+            await this.createService().download(identity.email, item.id);
+            const result = await this.createService().restore(
+              identity,
+              item.id,
+              'INBOX',
+              `large-${item.id}`,
+            );
+            if (result.state !== 'restored') throw Error('large restore did not complete');
+          }
           return {
             ...status,
             nativeBoundary: { maximumCarry, sizes: items.map((item) => item.size) },

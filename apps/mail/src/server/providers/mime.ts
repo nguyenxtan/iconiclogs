@@ -13,7 +13,7 @@ import { normalizeContentId } from '../../shared/inlineMedia';
 
 export function ensureMimeSize(size: number) {
   if (size > MAX_MIME)
-    throw new MailError('TOO_LARGE', 413, 'Thư vượt giới hạn 10 MiB của webmail.');
+    throw new MailError('TOO_LARGE', 413, 'Thư vượt giới hạn 25 MiB của webmail.');
 }
 export async function parseMessage(raw: Buffer): Promise<ParsedMail> {
   ensureMimeSize(raw.length);

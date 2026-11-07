@@ -274,7 +274,7 @@ export function Composer({
     ) {
       setNotice({
         tone: 'error',
-        message: 'Tổng tệp đính kèm tối đa 7 MB. Không có tệp nào được thêm.',
+        message: 'Tổng tệp đính kèm tối đa 18 MiB. Không có tệp nào được thêm.',
       });
       return;
     }

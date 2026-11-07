@@ -93,7 +93,7 @@ it('runs encrypted capture, R2 integrity, daily revoke and RPC scope checks in n
     expect((await call('revoked')).error.code).toBe('BACKUP_REVOKED');
     const large = await call('large');
     expect(large.run.state).toBe('complete');
-    expect(large.nativeBoundary.sizes).toContain(10 * 1024 * 1024);
+    expect(large.nativeBoundary.sizes).toContain(25 * 1024 * 1024);
     expect(large.nativeBoundary.maximumCarry).toBeGreaterThan(6 * 1024 * 1024 - 128 * 1024);
     expect(large.nativeBoundary.maximumCarry).toBeLessThanOrEqual(6 * 1024 * 1024 + 29);
     expect((await call('capture')).run.state).toBe('complete');
