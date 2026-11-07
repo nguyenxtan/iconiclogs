@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Hero from '../components/Hero.astro';
+import ServiceGrid from '../components/ServiceGrid.astro';
+import Icon from '../components/Icon.astro';
+import { company, process } from '../content/company';
+import '../styles/home.css';
+const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`;
+---
+
+<BaseLayout title="ICONIC Logistics | Vận tải & giao nhận xuất nhập khẩu">
+  <Header />
+  <main id="noi-dung" tabindex="-1">
+    <Hero />
+    <section
+      class="photo-services section-space container"
+      id="dich-vu"
+      aria-labelledby="services-title"
+    >
+      <div class="section-top">
+        <div>
+          <p class="eyebrow">DỊCH VỤ CỦA ICONIC</p><h2 id="services-title">
+            Giải pháp cho từng<br />chặng vận chuyển.
+          </h2>
+        </div><p>
+          Từ vận tải quốc tế đến giao nhận nội địa, cùng lựa chọn dịch vụ phù hợp với hàng hóa và kế
+          hoạch kinh doanh.
+        </p>
+      </div>
+      <ServiceGrid />
+      <p class="image-note">Hình ảnh minh họa các hoạt động logistics.</p>
+    </section>
+    <section class="company-band" aria-labelledby="company-title">
+      <div class="container company-band-inner">
+        <div class="company-intro">
+          <p class="eyebrow">VỀ ICONIC LOGISTICS</p><h2 id="company-title">
+            Hiểu yêu cầu.<br />Rõ trách nhiệm.
+          </h2><p>
+            Chúng tôi cùng doanh nghiệp làm rõ phương án vận chuyển, thống nhất phạm vi và phối hợp
+            các đầu mối liên quan. Mỗi lô hàng được theo sát bằng thông tin cụ thể.
+          </p><a class="text-link" href="/about"
+            >Tìm hiểu về ICONIC <Icon name="arrow" size={20} /></a
+          >
+        </div><div class="company-principles">
+          <article>
+            <Icon name="check" size={23} /><div>
+              <h3>Bắt đầu từ nhu cầu thực tế</h3><p>
+                Loại hàng, tuyến và thời gian là cơ sở của phương án.
+              </p>
+            </div>
+          </article><article>
+            <Icon name="check" size={23} /><div>
+              <h3>Thống nhất trước khi triển khai</h3><p>
+                Phạm vi, chi phí và trách nhiệm được trao đổi rõ ràng.
+              </p>
+            </div>
+          </article><article>
+            <Icon name="check" size={23} /><div>
+              <h3>Chủ động trong quá trình thực hiện</h3><p>
+                Theo sát tiến độ và trao đổi khi có thay đổi.
+              </p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section
+      class="section-space container process-section"
+      id="cach-phoi-hop"
+      aria-labelledby="process-title"
+    >
+      <div class="section-top">
+        <div>
+          <p class="eyebrow">CÁCH PHỐI HỢP</p><h2 id="process-title">
+            Một quy trình rõ ràng,<br />từ yêu cầu đến giao nhận.
+          </h2>
+        </div><p>
+          Trao đổi đúng thông tin, thống nhất từng bước và cùng theo dõi quá trình thực hiện.
+        </p>
+      </div><ol class="process-timeline">
+        {
+          process.map((step, index) => (
+            <li>
+              <>
+                <span class="step-number">{index + 1}</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+    <section class="home-contact" id="lien-he" aria-labelledby="contact-title">
+      <div class="container home-contact-inner">
+        <div>
+          <p class="eyebrow">TRAO ĐỔI CÙNG ICONIC</p><h2 id="contact-title">
+            Bạn cần<br />vận chuyển gì?
+          </h2><p>
+            Chia sẻ loại hàng, điểm đi – đến và thời gian dự kiến. Chúng tôi sẽ cùng bạn làm rõ
+            phương án.
+          </p><a class="button button-brand" href={`mailto:${company.email}`}
+            >Gửi yêu cầu vận chuyển <Icon name="arrow" size={20} /></a
+          >
+        </div><address>
+          <div>
+            <span>Gọi cho chúng tôi</span><a href={`tel:+84${company.phone.slice(1)}`}
+              >{company.phoneDisplay}</a
+            >
+          </div><div>
+            <span>Email</span><a href={`mailto:${company.email}`}>{company.email}</a>
+          </div><div>
+            <span>Văn phòng</span><p>{company.address}</p><a class="map-link" href={mapUrl}
+              >Xem trên bản đồ <Icon name="northeast" size={16} /></a
+            >
+          </div>
+        </address>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

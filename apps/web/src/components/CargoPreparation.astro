@@ -1,0 +1,57 @@
+---
+interface Props {
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+const items = [
+  {
+    title: 'Hàng hóa',
+    description:
+      'Tên hàng, số lượng, trọng lượng, kích thước và cách đóng gói. Chia sẻ thêm yêu cầu bảo quản hoặc xử lý riêng nếu có.',
+  },
+  {
+    title: 'Tuyến giao nhận',
+    description: 'Điểm đi, điểm đến, địa chỉ lấy – giao hàng và các chặng cần phối hợp.',
+  },
+  {
+    title: 'Thời gian',
+    description: 'Ngày hàng sẵn sàng, thời điểm cần nhận và các mốc lịch trình quan trọng.',
+  },
+  {
+    title: 'Chứng từ & yêu cầu',
+    description:
+      'Hồ sơ hiện có, điều kiện giao hàng đã thỏa thuận và thông tin người phụ trách trao đổi.',
+  },
+];
+---
+
+<section
+  class:list={['cargo-preparation', { 'cargo-preparation-compact': compact }]}
+  aria-labelledby="preparation-title"
+>
+  <div class="preparation-heading">
+    <p class="eyebrow">CHUẨN BỊ CHO CUỘC TRAO ĐỔI</p><h2 id="preparation-title">
+      Thông tin cần chuẩn bị
+    </h2><p>
+      Bạn chưa cần có tất cả câu trả lời. Hãy bắt đầu từ thông tin đã có để cùng xác định những bước
+      tiếp theo.
+    </p>
+  </div>
+  <ol class="preparation-list">
+    {
+      items.map((item, index) => (
+        <li>
+          <>
+            <span>0{index + 1}</span>
+            <div>
+              <>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </>
+            </div>
+          </>
+        </li>
+      ))
+    }
+  </ol>
+</section>

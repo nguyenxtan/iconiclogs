@@ -1,0 +1,69 @@
+---
+import { company } from '../content/company';
+import Icon from './Icon.astro';
+import Logo from './Logo.astro';
+const links = [
+  { href: '/about', label: 'Về ICONIC' },
+  { href: '/services', label: 'Dịch vụ' },
+  { href: '/#cach-phoi-hop', label: 'Cách phối hợp' },
+  { href: '/contact', label: 'Liên hệ' },
+  { href: '/brochure', label: 'Brochure' },
+];
+const pathname = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand-mark" href="/" aria-label="ICONIC Logistics — về đầu trang">
+      <Logo />
+    </a>
+    <nav class="desktop-nav" aria-label="Điều hướng chính">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class:list={{
+              'is-active':
+                pathname === link.href ||
+                (link.href === '/services' && pathname.startsWith('/services/')),
+            }}
+            aria-current={pathname === link.href ? 'page' : undefined}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+    <a class="header-contact" href={`tel:+84${company.phone.slice(1)}`}
+      >{company.phoneDisplay} <Icon name="phone" size={16} /></a
+    >
+    <a class="button button-brand header-quote" href="/contact"
+      >Nhận báo giá <Icon name="arrow" size={17} /></a
+    >
+    <details class="mobile-menu">
+      <summary aria-label="Mở hoặc đóng điều hướng"
+        ><span>Menu</span><span class="menu-lines" aria-hidden="true"></span></summary
+      >
+      <nav aria-label="Điều hướng di động">
+        {
+          links.map((link) => (
+            <a
+              href={link.href}
+              class:list={{
+                'is-active':
+                  pathname === link.href ||
+                  (link.href === '/services' && pathname.startsWith('/services/')),
+              }}
+              aria-current={pathname === link.href ? 'page' : undefined}
+            >
+              {link.label}
+              <Icon name="arrow" size={18} />
+            </a>
+          ))
+        }
+        <a href={company.mailUrl}>ICONIC Mail<Icon name="northeast" size={18} /></a>
+      </nav>
+    </details>
+  </div>
+</header>
+<script is:inline src="/scripts/navigation.js" defer></script>

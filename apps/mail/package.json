@@ -1,0 +1,33 @@
+{
+  "name": "@iconic/mail",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 6070",
+    "dev:api": "wrangler dev --port 6071 --var ENVIRONMENT:development",
+    "build": "vite build && wrangler deploy --dry-run --outdir dist/worker",
+    "check": "tsc --noEmit",
+    "test:runtime": "wrangler deploy --dry-run --config test/wrangler.runtime.jsonc --outdir ../dist/runtime && node test/runtime.mjs"
+  },
+  "dependencies": {
+    "@iconic/brand": "workspace:*",
+    "dompurify": "^3.3.0",
+    "hono": "4.13.16",
+    "imapflow": "2.10.0",
+    "mailparser": "3.14.1",
+    "nodemailer": "10.3.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261102.1",
+    "@types/mailparser": "^3.4.0",
+    "@types/nodemailer": "^7.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "miniflare": "5.20261101.0-beta",
+    "vite": "8.3.5",
+    "wrangler": "4.156.1"
+  }
+}

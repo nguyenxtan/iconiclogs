@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import PageIntro from '../../components/PageIntro.astro';
+import ServiceGrid from '../../components/ServiceGrid.astro';
+import ContactCTA from '../../components/ContactCTA.astro';
+import CargoPreparation from '../../components/CargoPreparation.astro';
+---
+
+<BaseLayout
+  title="Dịch vụ logistics | Đường biển, hàng không, đường bộ | ICONIC"
+  description="Vận tải đường biển, hàng không, đường bộ, thủ tục hải quan, kho bãi và phân phối. Tìm hiểu phạm vi và thông tin cần chuẩn bị."
+>
+  <Header /><main id="noi-dung" tabindex="-1">
+    <PageIntro
+      image="port"
+      eyebrow="DỊCH VỤ CỦA ICONIC"
+      title="Dịch vụ logistics"
+      description="Vận chuyển, thủ tục xuất nhập khẩu và phân phối. Chọn một dịch vụ hoặc phối hợp nhiều chặng theo yêu cầu của lô hàng."
+      breadcrumbs={[{ label: 'Dịch vụ' }]}
+    /><section class="container page-section" aria-label="Các dịch vụ logistics">
+      <ServiceGrid /><p class="image-note">Hình ảnh minh họa các hoạt động logistics.</p>
+    </section><section class="preparation-band">
+      <div class="container"><CargoPreparation /></div>
+    </section><ContactCTA />
+  </main><Footer />
+</BaseLayout>

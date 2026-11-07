@@ -1,0 +1,276 @@
+diff --git a/dist/cjs/commands/quota.js b/dist/cjs/commands/quota.js
+index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a81301fa0507ac3d146ac72e64027152991319fe 100644
+--- a/dist/cjs/commands/quota.js
++++ b/dist/cjs/commands/quota.js
+@@ -20,17 +20,32 @@ async function quota(connection, path) {
+         return false;
+     }
+     path = (0, tools_js_1.normalizePath)(connection, path);
+-    let map = { path };
++    let roots = [];
++    let resources = new Map();
+     // Parse a QUOTA response. The resource list uses a repeating triplet pattern (i % 3):
+     //   position 0: resource name (e.g., "STORAGE", "MESSAGE")
+     //   position 1: current usage
+     //   position 2: limit
+     // Storage values are in KB on the wire; multiply by 1024 to report bytes.
+     let processQuotaResponse = (untagged) => {
++        const name = (0, tools_js_1.getStringValue)(untagged.attributes && untagged.attributes[0]);
+         let attributes = untagged.attributes && untagged.attributes[1];
+-        if (!attributes || !Array.isArray(attributes) || !attributes.length) {
++        if (name === undefined || name.length > 1024 || !Array.isArray(attributes)) {
+             return false;
+         }
++        if (!resources.has(name) && resources.size >= 64) throw new Error('Too many quota roots');
++        const map = { quotaRoot: name };
++        resources.set(name, map);
++        // Any malformed triplet invalidates this root, including otherwise valid
++        // resources beside it. Never disguise broken STORAGE as MESSAGE-only.
++        if (attributes.length % 3 !== 0) return false;
++        for (let i = 0; i < attributes.length; i += 3) {
++            const key = typeof attributes[i]?.value === 'string' ? attributes[i].value.toLowerCase() : '';
++            if (!key || (0, tools_js_1.isUnsafeKey)(key) || ['path', 'quotaroot', 'quotaroots'].includes(key) ||
++                (0, tools_js_1.parseUintValue)(attributes[i + 1]?.value) === false || (0, tools_js_1.parseUintValue)(attributes[i + 2]?.value) === false) {
++                return false;
++            }
++        }
+         let key = false;
+         attributes.forEach((attribute, i) => {
+             const position = i % 3;
+@@ -49,7 +64,7 @@ async function quota(connection, path) {
+             // Resource names are server-controlled. This object is returned to the caller, so it
+             // keeps a normal prototype and unsafe names are dropped instead; the fixed fields
+             // must keep their values too.
+-            if ((0, tools_js_1.isUnsafeKey)(key) || key === 'path' || key === 'quotaroot') {
++            if ((0, tools_js_1.isUnsafeKey)(key) || key === 'path' || key === 'quotaroot' || key === 'quotaroots') {
+                 return;
+             }
+             let resource = map[key];
+@@ -71,7 +86,6 @@ async function quota(connection, path) {
+             }
+         });
+     };
+-    let quotaFound = false;
+     let response;
+     try {
+         // Two-step quota lookup: GETQUOTAROOT identifies the quota root for a mailbox,
+@@ -79,38 +93,36 @@ async function quota(connection, path) {
+         // send the root name and require a separate GETQUOTA command.
+         response = await connection.exec('GETQUOTAROOT', [{ type: 'ATOM', value: (0, tools_js_1.encodePath)(connection, path) }], {
+             untagged: {
+-                // QUOTAROOT response tells us which quota root applies to this mailbox.
+-                // A mailbox may have zero or one quota root.
++                // RFC 9208 permits zero or more roots, including the empty string.
+                 QUOTAROOT: async (untagged) => {
+-                    // the root name is an astring, which may come as a literal
+-                    let quotaRoot = (0, tools_js_1.getStringValue)(untagged.attributes && untagged.attributes[1]);
+-                    if (quotaRoot) {
+-                        map.quotaRoot = quotaRoot;
++                    const names = (untagged.attributes || []).slice(1).map((0, tools_js_1.getStringValue));
++                    if (names.length > 64 || names.some(name => name === undefined || name.length > 1024)) {
++                        throw new Error('Invalid quota roots');
+                     }
++                    roots = [...new Set(names)];
+                 },
+-                // QUOTA response provides the actual resource usage and limits
+                 QUOTA: async (untagged) => {
+-                    quotaFound = true;
+                     processQuotaResponse(untagged);
+                 }
+             }
+         });
+         response.next();
+-        // Fallback: if we got a quota root but no QUOTA response inline,
+-        // explicitly request quota for that root.
+-        if (map.quotaRoot && !quotaFound) {
+-            response = await connection.exec('GETQUOTA', [{ type: 'ATOM', value: map.quotaRoot }], {
++        // A server may include only some roots inline. Query each missing root,
++        // using a quoted string so empty names and names containing spaces survive.
++        for (const name of roots) {
++            if (resources.has(name)) continue;
++            response = await connection.exec('GETQUOTA', [{ type: 'STRING', value: name }], {
+                 untagged: {
+                     QUOTA: async (untagged) => {
+                         processQuotaResponse(untagged);
+                     }
+                 }
+             });
+-            // Release the parser: without this the connection stalls, because the reader loop
+-            // waits for the response to be handed back before parsing any further input.
+             response.next();
+         }
+-        return map;
++        const quotaRoots = roots.map(name => resources.get(name) || { quotaRoot: name });
++        // Legacy fields describe the first root, never a mixture of several roots.
++        return { ...quotaRoots[0], path, quotaRoots };
+     }
+     catch (err) {
+         await (0, tools_js_1.reportCommandError)(connection, err);
+diff --git a/dist/cjs/types.d.ts b/dist/cjs/types.d.ts
+index 192535a9c1d35e748729430ba9ab78d30994881a..91664f803fb10a2353906c3eec039e5ac11ce5d4 100644
+--- a/dist/cjs/types.d.ts
++++ b/dist/cjs/types.d.ts
+@@ -265,6 +265,12 @@ export interface QuotaResource {
+     /** Usage as a percentage of the limit, e.g. "50%", set once a limit above zero is known */
+     status?: string | undefined;
+ }
++export interface QuotaRootResponse {
++    quotaRoot: string;
++    storage?: QuotaResource | undefined;
++    message?: QuotaResource | undefined;
++    [resource: string]: QuotaResource | string | undefined;
++}
+ export interface QuotaResponse {
+     /** Mailbox path this quota applies to */
+     path: string;
+@@ -274,8 +280,10 @@ export interface QuotaResponse {
+     storage?: QuotaResource | undefined;
+     /** The MESSAGE resource, if the server reports one */
+     message?: QuotaResource | undefined;
+-    /** Any other resource the server reports, under its lowercased name (e.g. "mailbox") */
+-    [resource: string]: QuotaResource | string | undefined;
++    /** All roots applying to this mailbox, with resources kept separate. */
++    quotaRoots: QuotaRootResponse[];
++    /** Any other resource from the first quota root. */
++    [resource: string]: QuotaResource | QuotaRootResponse[] | string | undefined;
+ }
+ /**
+  * Status data items to request with `status()` or the `statusQuery` listing option
+diff --git a/dist/esm/commands/quota.js b/dist/esm/commands/quota.js
+index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..874284a50f55903aff2d0422ca19e0ca2993488e 100644
+--- a/dist/esm/commands/quota.js
++++ b/dist/esm/commands/quota.js
+@@ -17,17 +17,32 @@ export default async function quota(connection, path) {
+         return false;
+     }
+     path = normalizePath(connection, path);
+-    let map = { path };
++    let roots = [];
++    let resources = new Map();
+     // Parse a QUOTA response. The resource list uses a repeating triplet pattern (i % 3):
+     //   position 0: resource name (e.g., "STORAGE", "MESSAGE")
+     //   position 1: current usage
+     //   position 2: limit
+     // Storage values are in KB on the wire; multiply by 1024 to report bytes.
+     let processQuotaResponse = (untagged) => {
++        const name = getStringValue(untagged.attributes && untagged.attributes[0]);
+         let attributes = untagged.attributes && untagged.attributes[1];
+-        if (!attributes || !Array.isArray(attributes) || !attributes.length) {
++        if (name === undefined || name.length > 1024 || !Array.isArray(attributes)) {
+             return false;
+         }
++        if (!resources.has(name) && resources.size >= 64) throw new Error('Too many quota roots');
++        const map = { quotaRoot: name };
++        resources.set(name, map);
++        // Any malformed triplet invalidates this root, including otherwise valid
++        // resources beside it. Never disguise broken STORAGE as MESSAGE-only.
++        if (attributes.length % 3 !== 0) return false;
++        for (let i = 0; i < attributes.length; i += 3) {
++            const key = typeof attributes[i]?.value === 'string' ? attributes[i].value.toLowerCase() : '';
++            if (!key || isUnsafeKey(key) || ['path', 'quotaroot', 'quotaroots'].includes(key) ||
++                parseUintValue(attributes[i + 1]?.value) === false || parseUintValue(attributes[i + 2]?.value) === false) {
++                return false;
++            }
++        }
+         let key = false;
+         attributes.forEach((attribute, i) => {
+             const position = i % 3;
+@@ -46,7 +61,7 @@ export default async function quota(connection, path) {
+             // Resource names are server-controlled. This object is returned to the caller, so it
+             // keeps a normal prototype and unsafe names are dropped instead; the fixed fields
+             // must keep their values too.
+-            if (isUnsafeKey(key) || key === 'path' || key === 'quotaroot') {
++            if (isUnsafeKey(key) || key === 'path' || key === 'quotaroot' || key === 'quotaroots') {
+                 return;
+             }
+             let resource = map[key];
+@@ -68,7 +83,6 @@ export default async function quota(connection, path) {
+             }
+         });
+     };
+-    let quotaFound = false;
+     let response;
+     try {
+         // Two-step quota lookup: GETQUOTAROOT identifies the quota root for a mailbox,
+@@ -76,38 +90,36 @@ export default async function quota(connection, path) {
+         // send the root name and require a separate GETQUOTA command.
+         response = await connection.exec('GETQUOTAROOT', [{ type: 'ATOM', value: encodePath(connection, path) }], {
+             untagged: {
+-                // QUOTAROOT response tells us which quota root applies to this mailbox.
+-                // A mailbox may have zero or one quota root.
++                // RFC 9208 permits zero or more roots, including the empty string.
+                 QUOTAROOT: async (untagged) => {
+-                    // the root name is an astring, which may come as a literal
+-                    let quotaRoot = getStringValue(untagged.attributes && untagged.attributes[1]);
+-                    if (quotaRoot) {
+-                        map.quotaRoot = quotaRoot;
++                    const names = (untagged.attributes || []).slice(1).map(getStringValue);
++                    if (names.length > 64 || names.some(name => name === undefined || name.length > 1024)) {
++                        throw new Error('Invalid quota roots');
+                     }
++                    roots = [...new Set(names)];
+                 },
+-                // QUOTA response provides the actual resource usage and limits
+                 QUOTA: async (untagged) => {
+-                    quotaFound = true;
+                     processQuotaResponse(untagged);
+                 }
+             }
+         });
+         response.next();
+-        // Fallback: if we got a quota root but no QUOTA response inline,
+-        // explicitly request quota for that root.
+-        if (map.quotaRoot && !quotaFound) {
+-            response = await connection.exec('GETQUOTA', [{ type: 'ATOM', value: map.quotaRoot }], {
++        // A server may include only some roots inline. Query each missing root,
++        // using a quoted string so empty names and names containing spaces survive.
++        for (const name of roots) {
++            if (resources.has(name)) continue;
++            response = await connection.exec('GETQUOTA', [{ type: 'STRING', value: name }], {
+                 untagged: {
+                     QUOTA: async (untagged) => {
+                         processQuotaResponse(untagged);
+                     }
+                 }
+             });
+-            // Release the parser: without this the connection stalls, because the reader loop
+-            // waits for the response to be handed back before parsing any further input.
+             response.next();
+         }
+-        return map;
++        const quotaRoots = roots.map(name => resources.get(name) || { quotaRoot: name });
++        // Legacy fields describe the first root, never a mixture of several roots.
++        return { ...quotaRoots[0], path, quotaRoots };
+     }
+     catch (err) {
+         await reportCommandError(connection, err);
+diff --git a/dist/esm/types.d.ts b/dist/esm/types.d.ts
+index 192535a9c1d35e748729430ba9ab78d30994881a..91664f803fb10a2353906c3eec039e5ac11ce5d4 100644
+--- a/dist/esm/types.d.ts
++++ b/dist/esm/types.d.ts
+@@ -265,6 +265,12 @@ export interface QuotaResource {
+     /** Usage as a percentage of the limit, e.g. "50%", set once a limit above zero is known */
+     status?: string | undefined;
+ }
++export interface QuotaRootResponse {
++    quotaRoot: string;
++    storage?: QuotaResource | undefined;
++    message?: QuotaResource | undefined;
++    [resource: string]: QuotaResource | string | undefined;
++}
+ export interface QuotaResponse {
+     /** Mailbox path this quota applies to */
+     path: string;
+@@ -274,8 +280,10 @@ export interface QuotaResponse {
+     storage?: QuotaResource | undefined;
+     /** The MESSAGE resource, if the server reports one */
+     message?: QuotaResource | undefined;
+-    /** Any other resource the server reports, under its lowercased name (e.g. "mailbox") */
+-    [resource: string]: QuotaResource | string | undefined;
++    /** All roots applying to this mailbox, with resources kept separate. */
++    quotaRoots: QuotaRootResponse[];
++    /** Any other resource from the first quota root. */
++    [resource: string]: QuotaResource | QuotaRootResponse[] | string | undefined;
+ }
+ /**
+  * Status data items to request with `status()` or the `statusQuery` listing option

@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist
+node_modules
+.astro
+.wrangler
+.superpowers
+test-results
+playwright-report
+packages/brand/assets
