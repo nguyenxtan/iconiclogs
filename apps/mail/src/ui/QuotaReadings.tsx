@@ -11,7 +11,9 @@ export function QuotaReadings({
   quota: MailQuota;
   progress?: boolean;
 }) {
-  const roots = quota.roots ?? [{ name: 'Mailbox', used: quota.used, limit: quota.limit }];
+  const roots = [
+    ...(quota.roots ?? [{ name: 'Mailbox', used: quota.used, limit: quota.limit }]),
+  ].sort((a, b) => Number(b.name === 'Mailbox') - Number(a.name === 'Mailbox'));
   return (
     <>
       {roots.map((root) => {

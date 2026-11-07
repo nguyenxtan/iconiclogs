@@ -2,8 +2,12 @@ import { createServer, type AddressInfo } from 'node:net';
 import { createRequire } from 'node:module';
 import { ImapFlow } from 'imapflow';
 import { expect, it } from 'vitest';
+import { ViettelProvider } from '../src/server/providers/viettel';
 
 const cjs = createRequire(import.meta.url)('imapflow').ImapFlow as typeof ImapFlow;
+it('keeps the CommonJS command export compatible with the other command modules', () => {
+  expect(typeof createRequire(import.meta.url)('imapflow/lib/commands/quota.js')).toBe('function');
+});
 
 async function query(
   Client: typeof ImapFlow,
@@ -112,19 +116,33 @@ for (const [mode, Client] of [
     });
   });
 
-  it(`${mode}: cannot merge malformed counts or resources between roots`, async () => {
-    const { quota } = await query(
-      Client,
-      '* QUOTAROOT INBOX Mailbox Account\r\n* QUOTA Mailbox (STORAGE broken 512000 MESSAGE 2 50 __PROTO__ 1 2)\r\n* QUOTA Account (STORAGE 4 5242880)\r\n',
-    );
-    expect(quota).toMatchObject({
-      quotaRoots: [
-        { quotaRoot: 'Mailbox', storage: { limit: 524288000 }, message: { usage: 2, limit: 50 } },
-        { quotaRoot: 'Account', storage: { usage: 4096, limit: 5368709120 } },
-      ],
+  for (const invalid of [
+    'STORAGE broken broken MESSAGE 2 50',
+    'MESSAGE 2 STORAGE 1 2',
+    'STORAGE broken 512000 MESSAGE 2 50 __PROTO__ 1 2',
+    'STORAGE 1 2 "" 3 4',
+  ])
+    it(`${mode}: invalidates an entire malformed root: ${invalid}`, async () => {
+      const { quota } = await query(
+        Client,
+        '* QUOTAROOT INBOX Mailbox Account\r\n* QUOTA Mailbox (' +
+          invalid +
+          ')\r\n* QUOTA Account (STORAGE 4 5242880)\r\n',
+      );
+      expect(quota).toMatchObject({
+        quotaRoots: [
+          { quotaRoot: 'Mailbox' },
+          { quotaRoot: 'Account', storage: { usage: 4096, limit: 5368709120 } },
+        ],
+      });
+      if (!quota) throw Error('missing response');
+      expect(quota.quotaRoots[0]).toEqual({ quotaRoot: 'Mailbox' });
+      const provider = new ViettelProvider(
+        { email: 'synthetic@example.test', password: 'synthetic' },
+        { host: 'example.test', sentMode: 'append' },
+      );
+      provider.connection = async (operation) =>
+        operation({ getQuota: async () => quota } as unknown as ImapFlow);
+      expect(await provider.quota()).toBeNull();
     });
-    if (!quota) throw Error('missing response');
-    expect((quota as any).quotaRoots[0].storage.usage).toBeUndefined();
-    expect(Object.hasOwn((quota as any).quotaRoots[0], '__proto__')).toBe(false);
-  });
 }

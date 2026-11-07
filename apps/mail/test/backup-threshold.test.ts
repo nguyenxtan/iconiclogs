@@ -197,7 +197,22 @@ it('keeps an owned retry and its cooldown through quota migration', async () => 
   expect((await finish(f)).run?.id).toBe(before.run?.id);
   expect(f.counts().checks).toBe(1);
   expect(f.counts().snapshots).toBe(1);
+  expect(f.alarm()).toBeLessThanOrEqual(Date.now() + 1000);
+  await f.fire();
+  expect((await f.reopen().status(credentials.email)).automation?.state).toBe('above');
+  expect(f.counts().snapshots).toBe(1); // Cooldown prevents another capture.
 });
+
+for (const state of ['unavailable', 'error'] as const)
+  it(`rechecks migrated ${state} quota without leaving pending for an hour`, async () => {
+    const f = fixture({ used: 1, limit: 100 });
+    await f.reopen().configure(credentials, true);
+    await legacyPolicy(f, { automation: { thresholdPercent: 80, state } });
+    await f.reopen().status(credentials.email);
+    expect(f.alarm()).toBeLessThanOrEqual(Date.now() + 1000);
+    await f.fire();
+    expect((await f.reopen().status(credentials.email)).automation?.state).toBe('below');
+  });
 
 it('does not report below when any root is invalid', async () => {
   const f = fixture({

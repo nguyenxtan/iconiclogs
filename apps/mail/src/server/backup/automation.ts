@@ -43,6 +43,6 @@ export function finishAutomatic(saved: AutomaticBackup, now: number) {
   delete saved.runId;
   delete saved.pendingRunId;
   delete saved.pendingPreviousRunId;
-  saved.nextRunAt = now + quotaInterval;
+  saved.nextRunAt = now + (saved.automation?.state === 'pending' ? 1000 : quotaInterval);
   saved.automation = { ...saved.automation!, nextBackupAt: now + captureInterval };
 }

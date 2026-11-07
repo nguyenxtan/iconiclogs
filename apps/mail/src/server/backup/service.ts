@@ -170,14 +170,13 @@ export class BackupService {
     if (daily && daily.quotaVersion !== 1) {
       // Old flattened quota could report a false "below". Recheck promptly while
       // preserving explicit opt-in, suspension, run ownership, retries and cooldown.
-      const staleReading = !!daily.automation?.quota;
       daily.quotaVersion = 1;
       daily.automation = {
         thresholdPercent: 80,
         state: 'pending',
         ...(daily.automation?.nextBackupAt ? { nextBackupAt: daily.automation.nextBackupAt } : {}),
       };
-      if (staleReading && !daily.suspended && !daily.runId && !daily.pendingRunId && !daily.retryAt)
+      if (!daily.suspended && !daily.runId && !daily.pendingRunId && !daily.retryAt)
         daily.nextRunAt = Math.min(daily.nextRunAt, Date.now() + 1000);
       await this.saveAutomatic(daily);
     }

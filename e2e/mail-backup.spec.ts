@@ -378,8 +378,8 @@ test('mailbox and shared package quota keep distinct labels at desktop and mobil
       used: 100 * 1048576,
       limit: 500 * 1048576,
       roots: [
-        { name: 'Mailbox', used: 100 * 1048576, limit: 500 * 1048576 },
         { name: 'cPanel Account', used: 4096 * 1048576, limit: 5120 * 1048576 },
+        { name: 'Mailbox', used: 100 * 1048576, limit: 500 * 1048576 },
       ],
     },
   });
@@ -395,6 +395,7 @@ test('mailbox and shared package quota keep distinct labels at desktop and mobil
       ).toHaveAttribute('max', String(5120 * 1048576));
     }
     await expect(policy).toContainText('Hộp thư: 100 MiB / 500 MiB · 20%');
+    await expect(policy.locator('.quota-reading').first()).toContainText('Hộp thư:');
     await expect(policy).toContainText('Gói mail dùng chung: 4096 MiB / 5120 MiB · 80%');
     await expect(policy).toContainText('Đã đạt ngưỡng 80%');
     expect(await policy.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);

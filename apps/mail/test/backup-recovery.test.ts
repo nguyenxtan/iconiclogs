@@ -177,6 +177,7 @@ for (const state of ['suspended', 'revoked', 'disabled', 'auth-failure'] as cons
       await f.retire(deadline);
       if (state !== 'disabled')
         await f.put('daily', {
+          quotaVersion: 1,
           credentials,
           nextRunAt: state === 'auth-failure' ? Date.now() : Date.now() + day,
           ...(state === 'suspended' ? { suspended: true } : {}),
@@ -206,7 +207,7 @@ it('drains multi-batch retired metadata before a later daily deadline without pr
     const f = fixture();
     await f.reopen().status(credentials.email);
     const dailyAt = Date.now() + day;
-    await f.put('daily', { credentials, nextRunAt: dailyAt });
+    await f.put('daily', { quotaVersion: 1, credentials, nextRunAt: dailyAt });
     await f.retire(Date.now() - 1, 100);
     await f.fire();
     expect(f.alarm()).toBe(Date.now() + 5000);

@@ -1,8 +1,8 @@
 diff --git a/dist/cjs/commands/quota.js b/dist/cjs/commands/quota.js
-index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a0a7375214ebf9eec940057ee9a37397b8650460 100644
+index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a81301fa0507ac3d146ac72e64027152991319fe 100644
 --- a/dist/cjs/commands/quota.js
 +++ b/dist/cjs/commands/quota.js
-@@ -20,17 +20,22 @@ async function quota(connection, path) {
+@@ -20,17 +20,32 @@ async function quota(connection, path) {
          return false;
      }
      path = (0, tools_js_1.normalizePath)(connection, path);
@@ -24,10 +24,20 @@ index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a0a7375214ebf9eec940057ee9a37397
 +        if (!resources.has(name) && resources.size >= 64) throw new Error('Too many quota roots');
 +        const map = { quotaRoot: name };
 +        resources.set(name, map);
++        // Any malformed triplet invalidates this root, including otherwise valid
++        // resources beside it. Never disguise broken STORAGE as MESSAGE-only.
++        if (attributes.length % 3 !== 0) return false;
++        for (let i = 0; i < attributes.length; i += 3) {
++            const key = typeof attributes[i]?.value === 'string' ? attributes[i].value.toLowerCase() : '';
++            if (!key || (0, tools_js_1.isUnsafeKey)(key) || ['path', 'quotaroot', 'quotaroots'].includes(key) ||
++                (0, tools_js_1.parseUintValue)(attributes[i + 1]?.value) === false || (0, tools_js_1.parseUintValue)(attributes[i + 2]?.value) === false) {
++                return false;
++            }
++        }
          let key = false;
          attributes.forEach((attribute, i) => {
              const position = i % 3;
-@@ -49,7 +54,7 @@ async function quota(connection, path) {
+@@ -49,7 +64,7 @@ async function quota(connection, path) {
              // Resource names are server-controlled. This object is returned to the caller, so it
              // keeps a normal prototype and unsafe names are dropped instead; the fixed fields
              // must keep their values too.
@@ -36,7 +46,7 @@ index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a0a7375214ebf9eec940057ee9a37397
                  return;
              }
              let resource = map[key];
-@@ -71,7 +76,6 @@ async function quota(connection, path) {
+@@ -71,7 +86,6 @@ async function quota(connection, path) {
              }
          });
      };
@@ -44,7 +54,7 @@ index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a0a7375214ebf9eec940057ee9a37397
      let response;
      try {
          // Two-step quota lookup: GETQUOTAROOT identifies the quota root for a mailbox,
-@@ -79,43 +83,39 @@ async function quota(connection, path) {
+@@ -79,38 +93,36 @@ async function quota(connection, path) {
          // send the root name and require a separate GETQUOTA command.
          response = await connection.exec('GETQUOTAROOT', [{ type: 'ATOM', value: (0, tools_js_1.encodePath)(connection, path) }], {
              untagged: {
@@ -96,11 +106,6 @@ index 2713ccb4d4597ed7d8cf262b7a0fef324b042099..a0a7375214ebf9eec940057ee9a37397
      }
      catch (err) {
          await (0, tools_js_1.reportCommandError)(connection, err);
-         return false;
-     }
- }
--module.exports = exports.default;
--Object.defineProperty(module.exports, 'default', { value: exports.default, enumerable: false, writable: true, configurable: true });
 diff --git a/dist/cjs/types.d.ts b/dist/cjs/types.d.ts
 index 192535a9c1d35e748729430ba9ab78d30994881a..91664f803fb10a2353906c3eec039e5ac11ce5d4 100644
 --- a/dist/cjs/types.d.ts
@@ -132,10 +137,10 @@ index 192535a9c1d35e748729430ba9ab78d30994881a..91664f803fb10a2353906c3eec039e5a
  /**
   * Status data items to request with `status()` or the `statusQuery` listing option
 diff --git a/dist/esm/commands/quota.js b/dist/esm/commands/quota.js
-index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..a98a233b6cc65c5951f2985a0575f39d6bccf9ef 100644
+index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..874284a50f55903aff2d0422ca19e0ca2993488e 100644
 --- a/dist/esm/commands/quota.js
 +++ b/dist/esm/commands/quota.js
-@@ -17,17 +17,22 @@ export default async function quota(connection, path) {
+@@ -17,17 +17,32 @@ export default async function quota(connection, path) {
          return false;
      }
      path = normalizePath(connection, path);
@@ -157,10 +162,20 @@ index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..a98a233b6cc65c5951f2985a0575f39d
 +        if (!resources.has(name) && resources.size >= 64) throw new Error('Too many quota roots');
 +        const map = { quotaRoot: name };
 +        resources.set(name, map);
++        // Any malformed triplet invalidates this root, including otherwise valid
++        // resources beside it. Never disguise broken STORAGE as MESSAGE-only.
++        if (attributes.length % 3 !== 0) return false;
++        for (let i = 0; i < attributes.length; i += 3) {
++            const key = typeof attributes[i]?.value === 'string' ? attributes[i].value.toLowerCase() : '';
++            if (!key || isUnsafeKey(key) || ['path', 'quotaroot', 'quotaroots'].includes(key) ||
++                parseUintValue(attributes[i + 1]?.value) === false || parseUintValue(attributes[i + 2]?.value) === false) {
++                return false;
++            }
++        }
          let key = false;
          attributes.forEach((attribute, i) => {
              const position = i % 3;
-@@ -46,7 +51,7 @@ export default async function quota(connection, path) {
+@@ -46,7 +61,7 @@ export default async function quota(connection, path) {
              // Resource names are server-controlled. This object is returned to the caller, so it
              // keeps a normal prototype and unsafe names are dropped instead; the fixed fields
              // must keep their values too.
@@ -169,7 +184,7 @@ index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..a98a233b6cc65c5951f2985a0575f39d
                  return;
              }
              let resource = map[key];
-@@ -68,7 +73,6 @@ export default async function quota(connection, path) {
+@@ -68,7 +83,6 @@ export default async function quota(connection, path) {
              }
          });
      };
@@ -177,7 +192,7 @@ index 73a6e36471714e4e51be3e18dcc39fbd01c1bf2d..a98a233b6cc65c5951f2985a0575f39d
      let response;
      try {
          // Two-step quota lookup: GETQUOTAROOT identifies the quota root for a mailbox,
-@@ -76,38 +80,36 @@ export default async function quota(connection, path) {
+@@ -76,38 +90,36 @@ export default async function quota(connection, path) {
          // send the root name and require a separate GETQUOTA command.
          response = await connection.exec('GETQUOTAROOT', [{ type: 'ATOM', value: encodePath(connection, path) }], {
              untagged: {

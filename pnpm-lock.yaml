@@ -163,7 +163,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  imapflow@2.10.0: ee57537fa934af96e6866cd2544a0a7889376538c7a7967b9ce46cb03afdf655
+  imapflow@2.10.0: 55aa9f0553af992e9a3707edd7901e5a660b00eb8de54d3bf861bcf192769f64
 
 importers:
 
@@ -207,7 +207,7 @@ importers:
         version: 4.13.16
       imapflow:
         specifier: 2.10.0
-        version: 2.10.0(patch_hash=ee57537fa934af96e6866cd2544a0a7889376538c7a7967b9ce46cb03afdf655)
+        version: 2.10.0(patch_hash=55aa9f0553af992e9a3707edd7901e5a660b00eb8de54d3bf861bcf192769f64)
       mailparser:
         specifier: 3.14.1
         version: 3.14.1
@@ -3982,7 +3982,7 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  imapflow@2.10.0(patch_hash=ee57537fa934af96e6866cd2544a0a7889376538c7a7967b9ce46cb03afdf655):
+  imapflow@2.10.0(patch_hash=55aa9f0553af992e9a3707edd7901e5a660b00eb8de54d3bf861bcf192769f64):
     dependencies:
       '@zone-eu/mailsplit': 5.4.29
       encoding-japanese: 2.4.0
