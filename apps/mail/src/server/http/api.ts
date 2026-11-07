@@ -36,7 +36,6 @@ export interface MailServices {
   createFolder(id: string, name: string): Promise<void>;
   action(id: string, folder: Folder, action: MessageAction): Promise<void>;
   quota(id: string): Promise<MailQuota | null>;
-  quotaEvidence?(id: string): Promise<unknown>;
   raw(id: string, folder: Folder, messageId: string): Promise<MailAttachment>;
   preferences(id: string): Promise<MailPreferences>;
   savePreferences(id: string, value: MailPreferences): Promise<MailPreferences>;
@@ -252,10 +251,6 @@ export function createApp(services: MailServices, development = false) {
     return c.json({ ok: true });
   });
   app.get('/api/quota', async (c) => c.json(await services.quota(c.get('sessionId'))));
-  app.get('/api/quota/evidence', async (c) => {
-    if (!services.quotaEvidence) throw new MailError('NOT_FOUND', 404, 'Không có trang này.');
-    return c.json(await services.quotaEvidence(c.get('sessionId')));
-  });
   app.post('/api/messages/actions', async (c) => {
     const value = await json(c);
     await services.action(c.get('sessionId'), folderInput(value.folder), actionInput(value));

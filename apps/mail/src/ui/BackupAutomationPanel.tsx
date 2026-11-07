@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { BackupStatus } from '../shared/backup';
 import { Icon } from './Icon';
-import { formatSize } from './Reader';
+import { QuotaReadings } from './QuotaReadings';
 
 const time = (value: number) =>
   new Intl.DateTimeFormat('vi-VN', {
@@ -33,7 +33,6 @@ export function BackupAutomationPanel({
   }, [status.enabled]);
   const monitor = status.automation;
   const quota = monitor?.quota;
-  const percent = quota ? Math.floor((quota.used / quota.limit) * 1000) / 10 : null;
   return (
     <div className="backup-policy">
       <div className="backup-policy-label">
@@ -53,18 +52,13 @@ export function BackupAutomationPanel({
         </span>
       </div>
       <p>
-        Kiểm tra mỗi giờ. Chỉ tự bắt đầu sao lưu khi hộp thư dùng từ 80% dung lượng. Nếu vẫn trên
-        ngưỡng, các lượt cập nhật cách nhau tối thiểu 24 giờ. Thư ở Viettel được giữ nguyên.
+        Kiểm tra mỗi giờ. Tự bắt đầu sao lưu khi hộp thư hoặc gói mail dùng chung đạt 80%. Nếu vẫn
+        trên ngưỡng, các lượt cập nhật cách nhau tối thiểu 24 giờ. Thư ở Viettel được giữ nguyên.
       </p>
       {status.enabled && !status.suspended && (
         <div className="backup-monitor" role="status">
           <p>{explanations[monitor?.state ?? 'pending']}</p>
-          {quota && percent !== null && (
-            <p>
-              <strong>Dung lượng đã kiểm tra:</strong> {formatSize(quota.used)} /{' '}
-              {formatSize(quota.limit)} · {percent.toLocaleString('vi-VN')}%
-            </p>
-          )}
+          {quota && <QuotaReadings quota={quota} />}
           {monitor?.checkedAt && (
             <p>
               <strong>Kiểm tra gần nhất:</strong> {time(monitor.checkedAt)}

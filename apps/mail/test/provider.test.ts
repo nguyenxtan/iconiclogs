@@ -260,14 +260,53 @@ it('downloads original raw MIME as eml and reports byte quota only when supporte
       meta: { expectedSize: 11 },
       content: Readable.from([Buffer.from('Subject: x\r\n')]),
     }),
-    getQuota: async () => ({ storage: { usage: 12, limit: 100 } }),
+    getQuota: async () => ({
+      quotaRoots: [{ quotaRoot: 'Mailbox', storage: { usage: 12, limit: 100 } }],
+    }),
   });
   const raw = await provider.raw('inbox', '123.42');
   expect(Buffer.from(raw.content).toString()).toBe('Subject: x\r\n');
   expect(raw.type).toBe('message/rfc822');
   expect(raw.name).toMatch(/\.eml$/);
-  expect(await provider.quota()).toEqual({ used: 12, limit: 100 });
+  expect(await provider.quota()).toMatchObject({ used: 12, limit: 100 });
 });
+it('uses the mailbox cap and retains shared account pressure separately', async () => {
+  const quotaRoots = [
+    { quotaRoot: 'Mailbox', storage: { usage: 287345 * 1024, limit: 512000 * 1024 } },
+    { quotaRoot: 'cPanel Account', storage: { usage: 4500000 * 1024, limit: 5242880 * 1024 } },
+  ];
+  for (const roots of [quotaRoots, [...quotaRoots].reverse()]) {
+    expect(await fixture({ getQuota: async () => ({ quotaRoots: roots }) }).quota()).toEqual({
+      used: 287345 * 1024,
+      limit: 524288000,
+      roots: roots.map(({ quotaRoot: name, storage }) => ({
+        name,
+        used: storage.usage,
+        limit: storage.limit,
+      })),
+    });
+  }
+});
+for (const quota of [
+  { storage: { usage: 1808752 * 1024, limit: 5368709120 } },
+  { quotaRoots: [] },
+  {
+    quotaRoots: [
+      { quotaRoot: 'Mailbox' },
+      { quotaRoot: 'Account', storage: { usage: 1, limit: 100 } },
+    ],
+  },
+  { quotaRoots: [{ quotaRoot: 'Mailbox', storage: { usage: -1, limit: 100 } }] },
+  { quotaRoots: [{ quotaRoot: 'Mailbox', storage: { usage: 1, limit: 0 } }] },
+  {
+    quotaRoots: [
+      { quotaRoot: 'Mailbox', storage: { usage: 1, limit: Number.MAX_SAFE_INTEGER + 1 } },
+    ],
+  },
+])
+  it('fails closed on missing root evidence or invalid STORAGE', async () => {
+    expect(await fixture({ getQuota: async () => quota }).quota()).toBeNull();
+  });
 it('rejects move without native MOVE so the library cannot use a destructive expunge fallback', async () => {
   const move = vi.fn();
   const create = vi.fn();

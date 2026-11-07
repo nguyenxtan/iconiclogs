@@ -163,13 +163,3 @@ it('checks monthly ZIP HEAD with auth and metadata only without constructing a d
   expect(services.backupDownloadMonth).not.toHaveBeenCalled();
   expect(cancel).not.toHaveBeenCalled();
 });
-
-it('keeps temporary quota evidence behind the normal authenticated read boundary', async () => {
-  const { app, services } = setup();
-  services.quotaEvidence = async () => ({ lines: ['* QUOTA "Mailbox" (STORAGE 4 5)'] });
-  const path = 'https://mail.example.com/api/quota/evidence';
-  expect((await app.request(path)).status).toBe(401);
-  const response = await app.request(path, { headers: auth });
-  expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ lines: ['* QUOTA "Mailbox" (STORAGE 4 5)'] });
-});

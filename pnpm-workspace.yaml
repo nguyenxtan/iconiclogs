@@ -9,3 +9,5 @@ minimumReleaseAgeExclude:
   - astro@7.4.5
   - miniflare@5.20261101.0-beta
   - wrangler@4.156.1
+patchedDependencies:
+  imapflow@2.10.0: patches/imapflow@2.10.0.patch

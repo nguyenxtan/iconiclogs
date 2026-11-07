@@ -61,7 +61,7 @@ thư mục Sent và hành vi tự lưu Sent. Tham khảo `.dev.vars.example` cho
 production cấu hình secrets riêng trên Cloudflare. `SESSION_KEY` phải là 32 byte
 ngẫu nhiên dạng Base64, không dùng key test. Không ghi credentials vào Git.
 
-URL production được chuẩn bị: Web tại `https://iconiclogs.com`, Mail tại
+URL production: Web tại `https://iconiclogs.com`, Mail tại
 `https://mail.iconiclogs.com`. IMAP/SMTP dùng trực tiếp `hl-mail29.viettelidc.com.vn`;
 MX vẫn ở Viettel. Hướng dẫn Outlook và Apple Mail (Mac/iPhone/iPad) có ngay trên
 màn hình đăng nhập → Hướng dẫn cài đặt: IMAP 993, SMTP 465, SSL/TLS và xác thực
@@ -69,12 +69,12 @@ bằng địa chỉ email đầy đủ cùng mật khẩu Viettel. `webmail.icon
 vào giao diện Viettel. Công ty xác nhận hiện chỉ dùng webmail.
 Gửi/nhận thật, bản Sent và file đính kèm cần kiểm thử bằng tài khoản của chủ hộp thư.
 
-## Trạng thái Cloudflare — chuẩn bị production 07/11/2026
+## Trạng thái Cloudflare — 07/11/2026
 
-Website xem trước: **https://iconiclogs-web.tan-nx2377.workers.dev**. Đã kiểm tra
+Website: **https://iconiclogs.com**. Đã kiểm tra
 các trang, favicon, 404, CSP và điều hướng mobile trên Cloudflare.
 
-Mail: **https://iconiclogs-mail.tan-nx2377.workers.dev**. `MAIL_ENABLED=true`,
+Mail: **https://mail.iconiclogs.com**. `MAIL_ENABLED=true`,
 cho phép 7 hộp thư `admin`, `business`, `cs`, `customer`, `director`, `document`
 và `info` tại `@iconiclogs.com` đăng nhập bằng mật khẩu Viettel hiện có.
 `fwd@iconiclogs.com` là group do Viettel phân phối thư, không có
@@ -87,8 +87,12 @@ cần xác nhận hành vi tự lưu của Viettel khi kiểm thử gửi thật
 Đã kiểm thử vòng gửi/nhận, Sent, file và restore trên tài khoản CS với chủ hộp
 thư. Các tài khoản khác cần chủ tài khoản kiểm tra thông tin đăng nhập riêng.
 
-`iconiclogs-web` và `iconiclogs-mail` là hai Worker mới. Tên miền chính sẽ chuyển sau khi review; Worker cũ được giữ để rollback.
+`iconiclogs-web` và `iconiclogs-mail` phục vụ hai tên miền chính. Worker web cũ được giữ để rollback.
 `www` giữ chuyển hướng 308 sang tên miền chính; MX không đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
+
+Nghiệm thu production đang tiếp tục: CS đã đọc ảnh CID, gửi và đọc lại tệp 18 MiB
+trong Sent; Gmail chưa xác nhận nhận thư thử này. Sao lưu CS còn lượt cũ cần tiếp tục;
+FWD và đăng nhập production của Info/Document cần kiểm tra riêng.
 
 ## Mail mở rộng
 
@@ -97,10 +101,15 @@ Bcc, chữ ký/danh bạ và bản nháp tự lưu. `PersonalState` giữ dữ l
 `BackupCoordinator` quản lý sao lưu và restore; migration v2 thêm hai DO này.
 Backup cần private R2 binding `BACKUP_BUCKET` và secret `BACKUP_KEY` (32 byte Base64,
 khác SESSION_KEY). Sao lưu tự động theo ngưỡng 80% chỉ bật qua Cài đặt → Sao lưu của từng tài khoản.
-Kiểm tra quota Viettel mỗi giờ, chỉ bắt đầu capture khi dùng từ 80%; nếu vẫn trên
+Kiểm tra quota Viettel mỗi giờ, bắt đầu capture khi hộp thư hoặc gói dùng chung đạt 80%; nếu vẫn trên
 ngưỡng, các lượt cập nhật cách nhau tối thiểu 24 giờ. Quota thiếu/lỗi không tự
 khởi động capture. Tắt tự động thu hồi credential đã lưu; lịch sử giữ nguyên. Khôi phục thêm bản sao,
 không xóa nguồn. Giới hạn thư MIME 25 MiB, tổng tệp đính kèm khi soạn 18 MiB; trường hợp lỗi/quá lớn hiển thị rõ.
+
+Viettel trả nhiều quota root: Mailbox 500 MiB và cPanel Account 5 GiB. Bản vá
+ImapFlow được ghim trong `patches/`, giữ tài nguyên riêng cho từng root; giao diện
+hiển thị hai phạm vi và ngưỡng dùng tỷ lệ cao nhất. Số liệu cũ bị gộp được bỏ để đọc lại,
+giữ nguyên opt-in, checkpoint và cooldown.
 
 Kho chính là ZIP nén theo hộp thư/năm/tháng (ngày nhận UTC+7), mã hóa trên R2;
 tải ZIP chuẩn hoặc khôi phục từng thư/cả tháng. Đóng gói và xác minh có checkpoint,

@@ -52,6 +52,11 @@
   width: 100%;
   accent-color: var(--brand);
 }
+.quota-reading {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 8px;
+}
 .mail-quota strong {
   font-weight: 500;
   color: var(--brand);

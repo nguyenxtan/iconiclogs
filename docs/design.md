@@ -277,6 +277,11 @@ giữa các lượt tự động đã kết thúc; lượt đang chạy/retry ti
 Đây là lựa chọn triển khai, không phải yêu cầu về chu kỳ do chủ dự án chỉ định.
 
 Quota dùng số byte used/limit thực, không lấy phần trăm đã làm tròn trên UI.
+Kiểm chứng ngày 07/11: Viettel trả đồng thời root Mailbox 500 MiB và cPanel Account
+5 GiB. Bản vá ImapFlow giữ riêng các root, kể cả root rỗng/literal và fallback
+GETQUOTA từng root thiếu. UI tách hộp thư và gói dùng chung; ngưỡng dùng tỷ lệ cao
+nhất trong các hạn mức áp dụng. Thiếu số liệu của một root thì chưa kết luận dưới
+ngưỡng. Số liệu cũ bị gộp được vô hiệu hóa và đọc lại; giữ checkpoint, retry và cooldown.
 Lịch chỉ tiếp tục run do chính nó nhận quản lý sau khi qua điều kiện 80%; không
 tự tiếp tục một lượt thủ công đang dở khi dưới ngưỡng. Mất quyền/auth thì giữ
 quy tắc thu hồi/tạm dừng; tắt tự động thu hồi credential, giữ ZIP và cleanup.

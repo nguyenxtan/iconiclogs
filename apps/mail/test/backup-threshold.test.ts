@@ -3,6 +3,7 @@ import { BackupService, type BackupSource } from '../src/server/backup/service';
 import { MailError, ProviderAuthError } from '../src/server/core/errors';
 import type { MailQuota } from '../src/shared/contracts';
 import { MemoryBucket } from './backup-memory';
+import { backupKey, open, seal } from '../src/server/backup/crypto';
 
 const credentials = { email: 'threshold@example.test', password: 'synthetic' };
 const hour = 3600000;
@@ -125,6 +126,114 @@ async function finish(f: ReturnType<typeof fixture>) {
   throw Error('automatic capture did not finish');
 }
 afterEach(() => vi.useRealTimers());
+
+async function legacyPolicy(f: ReturnType<typeof fixture>, extra = {}) {
+  const key = await backupKey(Buffer.alloc(32, 7).toString('base64'));
+  const context = `${f.rows.get('scope')}:daily`;
+  const saved = JSON.parse(
+    new TextDecoder().decode(await open(f.rows.get('daily') as Uint8Array, key, context)),
+  );
+  delete saved.quotaVersion;
+  saved.nextRunAt = Date.now() + hour;
+  saved.automation = {
+    thresholdPercent: 80,
+    state: 'below',
+    checkedAt: Date.now(),
+    quota: { used: 1808752 * 1024, limit: 5368709120 },
+    nextBackupAt: Date.now() + 24 * hour,
+  };
+  Object.assign(saved, extra);
+  f.rows.set('daily', await seal(new TextEncoder().encode(JSON.stringify(saved)), key, context));
+  return saved;
+}
+
+it('rechecks stale shared-only quota promptly without dropping cooldown or manual ownership', async () => {
+  const f = fixture({ used: 1, limit: 100 });
+  await f.reopen().start(credentials);
+  await f.reopen().configure(credentials, true);
+  const legacy = await legacyPolicy(f);
+  const status = await f.reopen().status(credentials.email);
+  expect(status.automation).toEqual({
+    thresholdPercent: 80,
+    state: 'pending',
+    nextBackupAt: legacy.automation.nextBackupAt,
+  });
+  expect(f.alarm()).toBeLessThanOrEqual(Date.now() + 1000);
+  await f.fire();
+  expect((await f.reopen().status(credentials.email)).automation?.quota).toEqual({
+    used: 1,
+    limit: 100,
+  });
+  expect(f.counts()).toEqual({ snapshots: 1, batches: 0, checks: 1 });
+});
+
+it('does not revive suspended credentials while invalidating stale quota', async () => {
+  const f = fixture();
+  await f.reopen().configure(credentials, true);
+  await legacyPolicy(f, { suspended: true });
+  expect(await f.reopen().status(credentials.email)).toMatchObject({
+    suspended: true,
+    automation: { state: 'pending' },
+  });
+  expect(f.alarm()).toBeNull();
+  expect(f.counts().checks).toBe(0);
+});
+
+it('keeps an owned retry and its cooldown through quota migration', async () => {
+  const f = fixture();
+  const batch = f.source.batch;
+  f.source.batch = async () => {
+    throw Error('temporary');
+  };
+  await f.reopen().configure(credentials, true);
+  await f.fire();
+  const before = await f.reopen().status(credentials.email);
+  await legacyPolicy(f);
+  const migrated = await f.reopen().status(credentials.email);
+  expect(migrated.nextRunAt).toBe(before.nextRunAt);
+  expect(migrated.run?.id).toBe(before.run?.id);
+  f.source.batch = batch;
+  await f.fire();
+  expect((await finish(f)).run?.id).toBe(before.run?.id);
+  expect(f.counts().checks).toBe(1);
+  expect(f.counts().snapshots).toBe(1);
+});
+
+it('does not report below when any root is invalid', async () => {
+  const f = fixture({
+    used: 1,
+    limit: 100,
+    roots: [
+      { name: 'Mailbox', used: 1, limit: 100 },
+      { name: 'Account', used: 10, limit: 0 },
+    ],
+  });
+  await f.reopen().configure(credentials, true);
+  await f.fire();
+  expect((await f.reopen().status(credentials.email)).automation?.state).toBe('unavailable');
+  expect(f.counts().snapshots).toBe(0);
+});
+
+for (const roots of [
+  [
+    { name: 'Mailbox', used: 80, limit: 100 },
+    { name: 'cPanel Account', used: 34, limit: 100 },
+  ],
+  [
+    { name: 'Mailbox', used: 20, limit: 100 },
+    { name: 'cPanel Account', used: 80, limit: 100 },
+  ],
+])
+  it('triggers at the highest root pressure without relabeling shared storage as a mailbox', async () => {
+    const f = fixture({ used: roots[0]!.used, limit: 100, roots } as MailQuota);
+    await f.reopen().configure(credentials, true);
+    await f.fire();
+    expect(f.counts().snapshots).toBe(1);
+    expect((await f.reopen().status(credentials.email)).automation).toMatchObject({
+      state: 'above',
+      quota: { roots },
+    });
+  });
 
 it('preserves completed automatic cooldown when stored access is disabled and enabled again', async () => {
   const f = fixture();

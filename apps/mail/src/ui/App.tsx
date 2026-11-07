@@ -21,6 +21,7 @@ import { Logo } from './Logo';
 import { folderLabel, MessageList } from './MessageList';
 import { Reader } from './Reader';
 import { SettingsPanel } from './SettingsPanel';
+import { QuotaReadings } from './QuotaReadings';
 import './mail-features.css';
 
 export function App() {
@@ -483,16 +484,8 @@ export function App() {
         </nav>
         <div className="sidebar-bottom">
           {quota && quota.limit > 0 && (
-            <div
-              className={`mail-quota ${quota.used / quota.limit >= 0.85 ? 'quota-warning' : ''}`}
-              title={`${Math.round(quota.used / 1048576)} / ${Math.round(quota.limit / 1048576)} MiB`}
-            >
-              <span>
-                Dung lượng {Math.round(quota.used / 1048576)} / {Math.round(quota.limit / 1048576)}{' '}
-                MiB
-              </span>
-              <progress aria-label="Dung lượng hộp thư" value={quota.used} max={quota.limit} />
-              {quota.used / quota.limit >= 0.85 && <strong>Hộp thư gần đầy</strong>}
+            <div className="mail-quota">
+              <QuotaReadings quota={quota} progress />
             </div>
           )}
           <div className="account">

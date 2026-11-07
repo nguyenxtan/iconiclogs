@@ -105,6 +105,7 @@ export interface MessageAction {
 export interface MailQuota {
   used: number;
   limit: number;
+  roots?: { name: string; used: number; limit: number }[];
 }
 export interface MailPreferences {
   displayName: string;

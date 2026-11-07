@@ -6,7 +6,6 @@ import {
   type MessageAddressObject,
 } from 'imapflow';
 import type { ParsedMail } from 'mailparser';
-import { quotaEvidenceLogger } from './quotaEvidence';
 import type {
   Folder,
   MailFolder,
@@ -33,6 +32,7 @@ import {
 import { composeMessage, ensureMimeSize, messageBody, parseMessage } from './mime';
 import { deliverMessage } from './smtp';
 import { attachmentParts, decodedAttachmentParts, type AttachmentPart } from './parts';
+import { quotaPressure } from '../../shared/quota';
 
 const address = (value?: MessageAddressObject) => ({
   name: value?.name || '',
@@ -70,17 +70,14 @@ export class ViettelProvider implements MailProvider {
     private config: ProviderConfig,
   ) {}
 
-  async connection<T>(
-    operation: (client: ImapFlow) => Promise<T>,
-    logger: ReturnType<typeof quotaEvidenceLogger>['logger'] | false = false,
-  ): Promise<T> {
+  async connection<T>(operation: (client: ImapFlow) => Promise<T>): Promise<T> {
     const startedAt = Date.now();
     const client = new ImapFlow({
       host: this.config.host,
       port: 993,
       secure: true,
       auth: { user: this.credentials.email, pass: this.credentials.password },
-      logger,
+      logger: false,
       emitLogs: false,
       disableAutoIdle: true,
       doSTARTTLS: false,
@@ -373,54 +370,31 @@ export class ViettelProvider implements MailProvider {
     }
   }
 
-  async quotaEvidence() {
-    const trace = quotaEvidenceLogger(this.credentials.password);
-    return this.connection(async (client) => {
-      await client.getQuota('INBOX');
-      const sizeSupported =
-        client.capabilities.has('STATUS=SIZE') || client.capabilities.has('IMAP4REV2');
-      const folders = await client.list(sizeSupported ? { statusQuery: { size: true } } : {});
-      if (folders.length > 100) throw invalid();
-      const sent = folders.find((folder) => this.role(folder) === 'sent');
-      if (sent) await client.getQuota(sent.path);
-      const sizes = folders
-        .filter((folder) => !folder.flags.has('\\Noselect'))
-        .map((folder) => folder.status?.size);
-      const complete =
-        sizeSupported &&
-        sizes.every((size) => typeof size === 'number' && Number.isSafeInteger(size) && size >= 0);
-      const sum = complete ? sizes.reduce<number>((total, size) => total + Number(size), 0) : null;
-      return {
-        ...trace.snapshot(),
-        capabilities: ['QUOTA', 'STATUS=SIZE', 'IMAP4REV2', 'LIST-STATUS'].filter((name) =>
-          client.capabilities.has(name),
-        ),
-        folderCount: folders.length,
-        sizes: complete ? sizes : [],
-        summedSize: sum !== null && Number.isSafeInteger(sum) ? sum : null,
-        sharedNamespaces: Array.isArray(client.namespaces?.shared)
-          ? client.namespaces!.shared.length
-          : 0,
-      };
-    }, trace.logger);
-  }
-
   async quota(): Promise<MailQuota | null> {
     return this.connection(async (client) => {
       const quota = await client.getQuota('INBOX');
-      const storage = quota && quota.storage;
-      // ImapFlow converts the wire KiB values to bytes.
-      if (
-        !storage ||
-        typeof storage.usage !== 'number' ||
-        typeof storage.limit !== 'number' ||
-        !Number.isSafeInteger(storage.usage) ||
-        !Number.isSafeInteger(storage.limit) ||
-        storage.usage < 0 ||
-        storage.limit <= 0
-      )
-        return null;
-      return { used: storage.usage, limit: storage.limit };
+      // The pinned ImapFlow patch preserves all roots. Legacy flattened results
+      // cannot prove mailbox scope and must never suppress an automatic backup.
+      if (!quota || !Array.isArray(quota.quotaRoots) || !quota.quotaRoots.length) return null;
+      const roots: NonNullable<MailQuota['roots']> = [];
+      for (const root of quota.quotaRoots) {
+        if (!root.storage) {
+          if (Object.keys(root).length === 1) return null; // No QUOTA response for this root.
+          continue; // A root governing only MESSAGE or another resource.
+        }
+        const { usage: used, limit } = root.storage;
+        if (
+          typeof used !== 'number' ||
+          typeof limit !== 'number' ||
+          !quotaPressure({ used, limit })
+        )
+          return null;
+        roots.push({ name: root.quotaRoot, used, limit }); // SDK converts KiB to bytes.
+      }
+      if (!roots.length) return null;
+      const primary =
+        roots.find((root) => root.name === 'Mailbox') ?? quotaPressure({ ...roots[0]!, roots });
+      return primary ? { used: primary.used, limit: primary.limit, roots } : null;
     });
   }
 

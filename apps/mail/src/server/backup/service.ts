@@ -167,6 +167,20 @@ export class BackupService {
   }
   private async currentStatus(): Promise<BackupStatus> {
     const daily = await this.get<AutomaticBackup>('daily');
+    if (daily && daily.quotaVersion !== 1) {
+      // Old flattened quota could report a false "below". Recheck promptly while
+      // preserving explicit opt-in, suspension, run ownership, retries and cooldown.
+      const staleReading = !!daily.automation?.quota;
+      daily.quotaVersion = 1;
+      daily.automation = {
+        thresholdPercent: 80,
+        state: 'pending',
+        ...(daily.automation?.nextBackupAt ? { nextBackupAt: daily.automation.nextBackupAt } : {}),
+      };
+      if (staleReading && !daily.suspended && !daily.runId && !daily.pendingRunId && !daily.retryAt)
+        daily.nextRunAt = Math.min(daily.nextRunAt, Date.now() + 1000);
+      await this.saveAutomatic(daily);
+    }
     return {
       enabled: !!daily,
       ...(daily?.suspended ? { suspended: true } : {}),
@@ -203,6 +217,7 @@ export class BackupService {
         const nextRunAt = Date.now() + 1000;
         await this.saveAutomatic({
           credentials,
+          quotaVersion: existing ? existing.quotaVersion : 1,
           nextRunAt,
           automation: existing?.automation ?? { thresholdPercent: 80, state: 'pending' },
           ...(existing?.runId ? { runId: existing.runId } : {}),
@@ -695,6 +710,7 @@ export class BackupService {
         throw error;
       }
       let status = await this.currentStatus();
+      saved.quotaVersion = 1;
       saved.automation = status.automation;
       // A pending intent can resume only its exact run, never a newer manual replacement.
       if (

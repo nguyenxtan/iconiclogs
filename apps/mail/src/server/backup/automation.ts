@@ -1,12 +1,14 @@
 import type { Credentials } from '../core/session';
 import type { MailQuota } from '../../shared/contracts';
 import type { BackupAutomation } from '../../shared/backup';
+import { quotaPressure } from '../../shared/quota';
 
 export const quotaInterval = 60 * 60 * 1000;
 export const captureInterval = 24 * quotaInterval;
 
 // The persisted "daily" key is retained for existing encrypted opt-ins.
 export interface AutomaticBackup {
+  quotaVersion?: 1;
   credentials: Credentials;
   nextRunAt: number;
   retries?: number;
@@ -19,19 +21,16 @@ export interface AutomaticBackup {
 }
 
 export function recordQuota(saved: AutomaticBackup, quota: MailQuota | null, now: number) {
-  const valid =
-    quota &&
-    Number.isSafeInteger(quota.used) &&
-    Number.isSafeInteger(quota.limit) &&
-    quota.used >= 0 &&
-    quota.limit > 0;
+  const pressure = quotaPressure(quota);
+  const valid = !!pressure;
   // Compare original bytes, never a rounded display percentage.
-  const above = !!valid && BigInt(quota.used) * 100n >= BigInt(quota.limit) * 80n;
+  const above = !!pressure && BigInt(pressure.used) * 100n >= BigInt(pressure.limit) * 80n;
+  saved.quotaVersion = 1;
   saved.automation = {
     thresholdPercent: 80,
     checkedAt: now,
     state: !valid ? 'unavailable' : above ? 'above' : 'below',
-    ...(valid ? { quota } : {}),
+    ...(valid ? { quota: quota! } : {}),
     ...(saved.automation?.nextBackupAt ? { nextBackupAt: saved.automation.nextBackupAt } : {}),
   };
   saved.nextRunAt = now + quotaInterval;

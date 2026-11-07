@@ -57,7 +57,7 @@ async function syntheticBackup(page: Page, automation?: BackupAutomation) {
         json = { displayName: 'Tài khoản thử nghiệm', signature: '', contacts: [] };
         break;
       case '/api/quota':
-        json = null;
+        json = automation?.quota ?? null;
         break;
       case '/api/drafts':
         json = [];
@@ -365,6 +365,41 @@ test('reopened interrupted restore remains uncertain and locked instead of looki
       { exact: true },
     ),
   ).toBeVisible();
+});
+
+test('mailbox and shared package quota keep distinct labels at desktop and mobile sizes', async ({
+  page,
+}) => {
+  await syntheticBackup(page, {
+    thresholdPercent: 80,
+    state: 'above',
+    checkedAt: Date.now(),
+    quota: {
+      used: 100 * 1048576,
+      limit: 500 * 1048576,
+      roots: [
+        { name: 'Mailbox', used: 100 * 1048576, limit: 500 * 1048576 },
+        { name: 'cPanel Account', used: 4096 * 1048576, limit: 5120 * 1048576 },
+      ],
+    },
+  });
+  const policy = page.locator('.backup-policy');
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    if (width === 1440) {
+      await expect(
+        page.getByRole('progressbar', { name: 'Dung lượng hộp thư', exact: true }),
+      ).toHaveAttribute('max', String(500 * 1048576));
+      await expect(
+        page.getByRole('progressbar', { name: 'Dung lượng gói mail dùng chung', exact: true }),
+      ).toHaveAttribute('max', String(5120 * 1048576));
+    }
+    await expect(policy).toContainText('Hộp thư: 100 MiB / 500 MiB · 20%');
+    await expect(policy).toContainText('Gói mail dùng chung: 4096 MiB / 5120 MiB · 80%');
+    await expect(policy).toContainText('Đã đạt ngưỡng 80%');
+    expect(await policy.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    await policy.screenshot({ path: `/tmp/iconic-quota-roots-${width}.png` });
+  }
 });
 
 for (const sample of [
