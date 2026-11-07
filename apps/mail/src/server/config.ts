@@ -7,6 +7,7 @@ export interface ProviderConfig {
   sentFolder?: string;
 }
 export interface Settings {
+  MAIL_QUOTA_DIAGNOSTIC?: string;
   MAIL_ENABLED?: string;
   MAIL_DOMAIN?: string;
   MAIL_HOST?: string;

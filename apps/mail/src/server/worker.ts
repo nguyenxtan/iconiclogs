@@ -67,6 +67,12 @@ function services(env: Env): MailServices {
     async quota(id) {
       return withProvider(id, (client) => client.quota());
     },
+    async quotaEvidence(id) {
+      const value = await credentials(id);
+      if (!env.MAIL_QUOTA_DIAGNOSTIC || value.email !== env.MAIL_QUOTA_DIAGNOSTIC)
+        throw new MailError('NOT_FOUND', 404, 'Không có trang này.');
+      return withProvider(id, (client) => client.quotaEvidence());
+    },
     async raw(id, folder, messageId) {
       return withProvider(id, (client) => client.raw(folder, messageId));
     },

@@ -6,6 +6,7 @@ import {
   type MessageAddressObject,
 } from 'imapflow';
 import type { ParsedMail } from 'mailparser';
+import { quotaEvidenceLogger } from './quotaEvidence';
 import type {
   Folder,
   MailFolder,
@@ -69,14 +70,17 @@ export class ViettelProvider implements MailProvider {
     private config: ProviderConfig,
   ) {}
 
-  async connection<T>(operation: (client: ImapFlow) => Promise<T>): Promise<T> {
+  async connection<T>(
+    operation: (client: ImapFlow) => Promise<T>,
+    logger: ReturnType<typeof quotaEvidenceLogger>['logger'] | false = false,
+  ): Promise<T> {
     const startedAt = Date.now();
     const client = new ImapFlow({
       host: this.config.host,
       port: 993,
       secure: true,
       auth: { user: this.credentials.email, pass: this.credentials.password },
-      logger: false,
+      logger,
       emitLogs: false,
       disableAutoIdle: true,
       doSTARTTLS: false,
@@ -367,6 +371,38 @@ export class ViettelProvider implements MailProvider {
         'Chưa xác nhận được thay đổi. Hãy tải lại danh sách và kiểm tra trước khi thử lại.',
       );
     }
+  }
+
+  async quotaEvidence() {
+    const trace = quotaEvidenceLogger(this.credentials.password);
+    return this.connection(async (client) => {
+      await client.getQuota('INBOX');
+      const sizeSupported =
+        client.capabilities.has('STATUS=SIZE') || client.capabilities.has('IMAP4REV2');
+      const folders = await client.list(sizeSupported ? { statusQuery: { size: true } } : {});
+      if (folders.length > 100) throw invalid();
+      const sent = folders.find((folder) => this.role(folder) === 'sent');
+      if (sent) await client.getQuota(sent.path);
+      const sizes = folders
+        .filter((folder) => !folder.flags.has('\\Noselect'))
+        .map((folder) => folder.status?.size);
+      const complete =
+        sizeSupported &&
+        sizes.every((size) => typeof size === 'number' && Number.isSafeInteger(size) && size >= 0);
+      const sum = complete ? sizes.reduce<number>((total, size) => total + Number(size), 0) : null;
+      return {
+        ...trace.snapshot(),
+        capabilities: ['QUOTA', 'STATUS=SIZE', 'IMAP4REV2', 'LIST-STATUS'].filter((name) =>
+          client.capabilities.has(name),
+        ),
+        folderCount: folders.length,
+        sizes: complete ? sizes : [],
+        summedSize: sum !== null && Number.isSafeInteger(sum) ? sum : null,
+        sharedNamespaces: Array.isArray(client.namespaces?.shared)
+          ? client.namespaces!.shared.length
+          : 0,
+      };
+    }, trace.logger);
   }
 
   async quota(): Promise<MailQuota | null> {
