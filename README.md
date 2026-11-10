@@ -90,9 +90,12 @@ thư. Các tài khoản khác cần chủ tài khoản kiểm tra thông tin đ�
 `iconiclogs-web` và `iconiclogs-mail` phục vụ hai tên miền chính. Worker web cũ được giữ để rollback.
 `www` giữ chuyển hướng 308 sang tên miền chính; MX không đổi. Thiết kế và nguồn tài sản ở [docs/design.md](docs/design.md).
 
-Nghiệm thu production đang tiếp tục: CS đã đọc ảnh CID, gửi và đọc lại tệp 18 MiB
-trong Sent; Gmail chưa xác nhận nhận thư thử này. Sao lưu CS còn lượt cũ cần tiếp tục;
-FWD và đăng nhập production của Info/Document cần kiểm tra riêng.
+Nghiệm thu CS ngày 10/11: quota hộp thư 500 MiB được tách riêng, sao lưu hoàn tất,
+tải ZIP tháng qua UI và khôi phục thư thử có tệp 18 MiB khớp mã băm gốc.
+Đã kiểm chứng Gmail → FWD → CS → Gmail, chữ ký công ty và trích dẫn sạch;
+Gmail xác nhận SPF/DKIM/DMARC đều pass. Thư thử lớn ngày 07/11 đã được SMTP chấp nhận
+và lưu Sent nhưng chưa thấy ở Gmail, cần báo cáo giao thư Viettel để xác định.
+Đăng nhập production của Info/Document và phân phối tới các thành viên FWD khác cần kiểm tra riêng.
 
 ## Mail mở rộng
 
