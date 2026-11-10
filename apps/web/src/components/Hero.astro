@@ -1,0 +1,263 @@
+---
+import Icon from './Icon.astro';
+import { company, services } from '../content/company';
+import { imagery } from '../content/imagery';
+---
+
+<section class="photo-hero" aria-labelledby="hero-title">
+  <picture>
+    <source
+      media="(max-width: 700px)"
+      srcset="/visuals/photographic/port-mobile.webp"
+      width="720"
+      height="900"
+    />
+    <img
+      src={imagery.port.src}
+      alt={imagery.port.alt}
+      width={imagery.port.width}
+      height={imagery.port.height}
+      fetchpriority="high"
+    />
+  </picture>
+  <div class="hero-shade"></div>
+  <div class="container hero-content">
+    <p class="hero-eyebrow"><span></span> ICONIC LOGISTICS VIỆT NAM</p>
+    <h1 id="hero-title"><span>Logistics</span><span>xuất nhập khẩu.</span></h1>
+    <p class="hero-lead">Một đầu mối phối hợp.<br />Theo sát từng chặng đường.</p>
+    <p class="hero-description">
+      Vận tải biển, hàng không, đường bộ, thủ tục hải quan và kho bãi cho doanh nghiệp.
+    </p>
+    <div class="hero-actions">
+      <a class="button button-brand" href="/contact">Nhận báo giá <Icon name="arrow" size={20} /></a
+      ><a class="button hero-secondary" href="#dich-vu"
+        >Khám phá dịch vụ <Icon name="arrow" size={18} /></a
+      >
+    </div>
+    <a class="hero-mobile-phone" href={`tel:+84${company.phone.slice(1)}`}>{company.phoneDisplay}</a
+    >
+  </div>
+</section>
+<nav class="container mode-navigation" aria-label="Chọn dịch vụ logistics">
+  {
+    services.map((service) => (
+      <a href={`/services/${service.slug}`}>
+        <>
+          <Icon name={service.icon} size={25} />
+          <span>{service.title}</span>
+          <Icon name="northeast" size={16} />
+        </>
+      </a>
+    ))
+  }
+</nav>
+<style>
+  .photo-hero {
+    position: relative;
+    height: min(78vh, 780px);
+    min-height: 620px;
+    color: white;
+    background: #243c4d;
+    overflow: hidden;
+  }
+  picture,
+  picture img,
+  .hero-shade {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  picture img {
+    object-fit: cover;
+    object-position: 70% center;
+  }
+  .hero-shade {
+    background: linear-gradient(
+      90deg,
+      rgba(6, 23, 35, 0.9) 0%,
+      rgba(6, 23, 35, 0.76) 32%,
+      rgba(6, 23, 35, 0.28) 65%,
+      rgba(6, 23, 35, 0.05) 100%
+    );
+  }
+  .hero-content {
+    position: relative;
+    padding-top: clamp(65px, 10vh, 110px);
+    z-index: 1;
+  }
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: white;
+    margin-bottom: 24px;
+  }
+  .hero-eyebrow span {
+    width: 30px;
+    height: 2px;
+    background: #c98661;
+  }
+  h1 {
+    font-size: clamp(50px, 4.6vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    font-weight: 700;
+    max-width: 700px;
+  }
+  h1 span {
+    display: block;
+  }
+  .hero-lead {
+    font-size: 23px;
+    line-height: 1.45;
+    color: white;
+    margin-top: 24px;
+    font-weight: 500;
+  }
+  .hero-description {
+    max-width: 470px;
+    color: #e1e7eb;
+    font-size: 15px;
+    line-height: 1.7;
+    margin-top: 16px;
+  }
+  .hero-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .hero-secondary {
+    border: 1px solid #d9e0e5;
+    color: white;
+    background: #10243433;
+  }
+  .hero-secondary:hover {
+    background: #ffffff14;
+  }
+  .hero-mobile-phone {
+    display: none;
+  }
+  .photo-hero :focus-visible {
+    outline-color: white;
+  }
+  .mode-navigation {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: -36px;
+    background: white;
+    box-shadow: 0 14px 40px #162b3b12;
+  }
+  .mode-navigation a {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-height: 94px;
+    padding: 18px 22px;
+    border-right: 1px solid #e8ebed;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .mode-navigation a:last-child {
+    border-right: 0;
+  }
+  .mode-navigation a > svg:first-child {
+    color: var(--brand);
+    flex: none;
+  }
+  .mode-navigation a > svg:last-child {
+    margin-left: auto;
+    flex: none;
+    color: #777;
+  }
+  .mode-navigation a:hover {
+    color: var(--brand);
+    background: #faf8f7;
+  }
+  @media (max-width: 1100px) {
+    .mode-navigation a {
+      padding: 16px 15px;
+      font-size: 13px;
+      gap: 10px;
+    }
+    .mode-navigation a > svg:last-child {
+      display: none;
+    }
+    h1 {
+      font-size: 60px;
+    }
+  }
+  @media (max-width: 700px) {
+    .photo-hero {
+      height: calc(100svh - 64px);
+      min-height: 650px;
+      max-height: 830px;
+    }
+    picture img {
+      object-position: center;
+    }
+    .hero-shade {
+      background: linear-gradient(0deg, #071b2af5 0%, #071b2adb 39%, #071b2a56 75%, #071b2a14 100%);
+    }
+    .hero-content {
+      position: absolute;
+      inset: auto 0 0;
+      padding-top: 0;
+      padding-bottom: 66px;
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      gap: 9px;
+      margin-bottom: 20px;
+      letter-spacing: 0.1em;
+    }
+    h1 {
+      font-size: clamp(32px, 9.3vw, 42px);
+      line-height: 1.06;
+      letter-spacing: -0.035em;
+    }
+    .hero-lead {
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    .hero-description {
+      font-size: 14px;
+      margin-top: 12px;
+      max-width: 340px;
+    }
+    .hero-actions {
+      margin-top: 24px;
+    }
+    .hero-actions .button {
+      width: 100%;
+    }
+    .hero-secondary {
+      display: none;
+    }
+    .hero-mobile-phone {
+      display: block;
+      width: fit-content;
+      margin: 18px auto 0;
+      font-size: 14px;
+      color: white;
+    }
+    .mode-navigation {
+      display: flex;
+      overflow-x: auto;
+      margin-top: -24px;
+      width: calc(100% - 32px);
+    }
+    .mode-navigation a {
+      min-width: 170px;
+      min-height: 78px;
+      padding: 16px;
+      font-size: 13px;
+    }
+  }
+</style>

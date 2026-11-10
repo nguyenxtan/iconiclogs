@@ -1,0 +1,14 @@
+{
+  "name": "@iconic/brand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./assets/*": "./assets/*"
+  },
+  "dependencies": {
+    "@fontsource/be-vietnam-pro": "^5.2.0",
+    "@fontsource/source-serif-4": "^5.2.0"
+  }
+}

@@ -1,0 +1,66 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PageIntro from '../components/PageIntro.astro';
+import Icon from '../components/Icon.astro';
+import { company } from '../content/company';
+const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(company.address)}`;
+---
+
+<BaseLayout
+  title="Liên hệ | ICONIC Logistics"
+  description="Liên hệ ICONIC Logistics qua info@iconiclogs.com hoặc 0839 037 568. Văn phòng tại Phường Hiệp Bình, TP.HCM. Trao đổi nhu cầu vận chuyển và phương án logistics."
+>
+  <Header />
+  <main id="noi-dung" tabindex="-1">
+    <PageIntro
+      eyebrow="LIÊN HỆ ICONIC"
+      title="Liên hệ ICONIC"
+      accent=""
+      description="Một lô hàng cần vận chuyển, một phương án cần làm rõ. Chia sẻ nhu cầu của bạn để cùng ICONIC xác định các bước tiếp theo."
+      breadcrumbs={[{ label: 'Liên hệ' }]}
+    />
+    <section class="container contact-page-grid" aria-labelledby="contact-channels-title">
+      <div class="contact-page-channels">
+        <h2 id="contact-channels-title">Trao đổi cùng <em>ICONIC.</em></h2><address>
+          <div>
+            <Icon name="mail" size={24} /><div>
+              <span>Email</span><a href={`mailto:${company.email}`}>{company.email}</a>
+            </div>
+          </div><div>
+            <Icon name="phone" size={24} /><div>
+              <span>Điện thoại</span><a href={`tel:+84${company.phone.slice(1)}`}
+                >{company.phoneDisplay}</a
+              >
+            </div>
+          </div><div>
+            <Icon name="pin" size={24} /><div>
+              <span>Địa chỉ văn phòng</span><p>{company.address}</p><a
+                class="address-map"
+                href={mapUrl}>Mở trên Google Maps <Icon name="northeast" size={16} /></a
+              >
+            </div>
+          </div>
+        </address><a
+          class="button button-brand"
+          href={`mailto:${company.email}?subject=${encodeURIComponent('Yêu cầu tư vấn dịch vụ logistics')}`}
+          >Gửi yêu cầu vận chuyển <Icon name="northeast" size={20} /></a
+        ><p class="contact-page-note">
+          Email hoặc gọi trực tiếp để trao đổi loại hàng, tuyến vận chuyển và thời gian dự kiến.
+        </p>
+      </div><aside class="contact-side">
+        <p class="eyebrow">ĐỂ TRAO ĐỔI NHANH HƠN</p><h2>Thông tin lô hàng</h2><ol>
+          <li>Tên hàng, trọng lượng và kích thước.</li><li>
+            Điểm đi, điểm đến và yêu cầu giao nhận.
+          </li><li>Ngày hàng sẵn sàng và thời gian dự kiến.</li><li>
+            Chứng từ, điều kiện giao hàng nếu đã có.
+          </li>
+        </ol><a class="text-link" href="/services"
+          >Tìm dịch vụ phù hợp <Icon name="arrow" size={18} /></a
+        >
+      </aside>
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

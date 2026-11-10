@@ -1,0 +1,21 @@
+---
+import { company } from '../content/company';
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+---
+
+<footer class="site-footer">
+  <div class="container footer-top">
+    <a class="footer-logo" href="/" aria-label="ICONIC Logistics — về đầu trang"><Logo /></a><nav
+      aria-label="Điều hướng cuối trang"
+    >
+      <a href="/about">Về ICONIC</a><a href="/services">Dịch vụ</a><a href="/brochure"
+        >Hồ sơ năng lực</a
+      ><a href="/contact">Liên hệ</a>
+    </nav><a class="footer-mail" href={company.mailUrl}
+      >ICONIC Mail <Icon name="northeast" size={16} /></a
+    >
+  </div><div class="container footer-bottom">
+    <p>© {new Date().getFullYear()} ICONIC Logistics.</p><a href="#dau-trang">Về đầu trang ↑</a>
+  </div>
+</footer>

@@ -1,0 +1,127 @@
+.backup-months {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.backup-months-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+.backup-months-heading h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.backup-months-heading p,
+.backup-month-card p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.backup-months-heading > button {
+  flex-shrink: 0;
+}
+.backup-year {
+  margin-top: 26px;
+}
+.backup-year > h5 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  color: var(--ink);
+}
+.backup-month-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.backup-month-card {
+  border: 1px solid #dfe5e8;
+  border-radius: 12px;
+  padding: 18px;
+  min-width: 0;
+  background: #fff;
+}
+.backup-month-card.selected {
+  border-color: #801c18;
+  box-shadow: 0 0 0 1px #801c1818;
+}
+.backup-month-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.backup-month-title h6 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+}
+.backup-month-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #52606a;
+}
+.backup-month-meta strong {
+  color: #263238;
+  font-weight: 600;
+}
+.backup-month-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  align-items: center;
+}
+.backup-month-actions .button {
+  font-size: 12px;
+  padding: 8px 10px;
+  min-height: 34px;
+  text-decoration: none;
+}
+.backup-month-actions .disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.backup-month-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f7f8;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.backup-month-detail {
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 24px;
+}
+.backup-month-detail h4 {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+@media (max-width: 660px) {
+  .backup-month-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .backup-months-heading {
+    flex-direction: column;
+  }
+  .backup-month-card {
+    padding: 15px;
+  }
+  .backup-month-title {
+    flex-wrap: wrap;
+  }
+  .backup-month-progress {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

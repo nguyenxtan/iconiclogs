@@ -1,0 +1,55 @@
+<span class="logo-lockup">
+  <img class="logo-symbol" src="/brand/mark.svg" alt="" width="40" height="42" />
+  <span class="logo-wordmark">
+    <img src="/brand/iconic-logo.png" alt="ICONIC Logistics Việt Nam" width="500" height="500" />
+  </span>
+</span>
+
+<style>
+  .logo-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 42px;
+  }
+  .logo-symbol {
+    width: 40px;
+    height: 42px;
+    flex: none;
+  }
+  .logo-wordmark {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    width: 184px;
+    height: 36px;
+  }
+  .logo-wordmark img {
+    position: absolute;
+    width: 312px;
+    max-width: none;
+    height: 312px;
+    left: -89px;
+    top: -164px;
+  }
+  @media (max-width: 600px) {
+    .logo-lockup {
+      gap: 1px;
+      height: 36px;
+    }
+    .logo-symbol {
+      width: 33px;
+      height: 36px;
+    }
+    .logo-wordmark {
+      width: 159px;
+      height: 31px;
+    }
+    .logo-wordmark img {
+      width: 270px;
+      height: 270px;
+      left: -77px;
+      top: -142px;
+    }
+  }
+</style>
